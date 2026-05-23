@@ -1,0 +1,12 @@
+{
+	"name": "Backend Development",
+
+	"dockerComposeFile": [
+		"../../../docker-compose.yml"
+	],
+	"service": "backend",
+
+	"workspaceFolder": "/app",
+	"remoteUser": "vscode",
+	"shutdownAction": "stopCompose"
+}
