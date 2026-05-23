@@ -34,8 +34,12 @@ services:
     volumes:
       - ./src/frontend:/app
       # node_modulesは同期せず、匿名ボリュームを使用してコンテナ内に保存する
+      - /app/node_modules
     environment:
       - WATCHPACK_POLLING=true
+    depends_on:
+      rdb:
+        condition: service_healthy
 
   rdb:
     image: mysql:8.4
@@ -49,6 +53,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
+      - ./src/init.sql:/docker-entrypoint-initdb.d/init.sql
       - mysql:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
