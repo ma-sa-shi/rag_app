@@ -7,3 +7,15 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     delete_flg BOOLEAN DEFAULT FALSE
 );
+
+CREATE TABLE IF NOT EXISTS docs (
+    doc_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    dir_path VARCHAR(255),
+    filename VARCHAR(100) NOT NULL,
+    status ENUM('uploaded', 'processing', 'ingested', 'failed') DEFAULT 'uploaded',
+    extracted_text MEDIUMTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    delete_flg BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
