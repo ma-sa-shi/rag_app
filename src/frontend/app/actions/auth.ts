@@ -2,7 +2,7 @@
 
 import { pool } from '../../lib/db';
 import * as argon2 from 'argon2';
-import { SignJWT } from 'jose';
+import * as jose from 'jose';
 import { cookies } from 'next/headers';
 import { RowDataPacket } from 'mysql2';
 import { redirect } from 'next/navigation';
@@ -58,7 +58,7 @@ export async function signinAction(
         error: 'ユーザー名またはパスワードが正しくありません。',
       };
     }
-    const token = await new SignJWT({
+    const token = await new jose.SignJWT({
       userId: user.user_id,
       username: user.username,
       isAdmin: !!user.is_admin,
@@ -113,5 +113,19 @@ export async function signupAction(
   } catch (error) {
     console.error('Register error:', error);
     return { success: false, error: 'エラーが発生しました。' };
+  }
+}
+
+export async function getUserIdFromToken(): Promise<number | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('session_token')?.value;
+    if (!token) return null;
+
+    const { payload } = await jose.jwtVerify(token, JWT_SECRET);
+    return payload.userId as number;
+  } catch (error) {
+    console.error('JWT verification failed:', error);
+    return null;
   }
 }
