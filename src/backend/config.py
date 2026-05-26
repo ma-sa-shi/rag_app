@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     MYSQL_HOST: str
+    MYSQL_PORT: int
     MYSQL_DATABASE: str
     MYSQL_USER: str
     MYSQL_PASSWORD: str
@@ -14,5 +15,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=True, extra="ignore"
     )
+
 
 settings = Settings()
