@@ -1,0 +1,41 @@
+name: CI-backend
+
+on:
+  pull_request:
+    branches: ['main']
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/backend
+
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: 'poetry'
+
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+          poetry config virtualenvs.in-project false
+
+      - name: Install Dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Run Ruff (Lint)
+        run: poetry run ruff check .
+
+      - name: Run Ruff (Format)
+        run: poetry run ruff format --check .
