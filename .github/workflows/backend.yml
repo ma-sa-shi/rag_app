@@ -20,16 +20,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Poetry
+        run: |
+          pipx install poetry
+          poetry config virtualenvs.in-project false
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: 'poetry'
-
-      - name: Install Poetry
-        run: |
-          pipx install poetry
-          poetry config virtualenvs.in-project false
+          cache-dependency-path: 'src/backend/poetry.lock'
 
       - name: Install Dependencies
         run: poetry install --no-interaction --no-root

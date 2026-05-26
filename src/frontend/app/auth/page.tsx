@@ -21,7 +21,6 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (signupState.success) {
-      setMode('signin');
       alert('登録が完了しました。ログインしてください。');
     } else if (signupState.error) {
       alert(signupState.error);
@@ -32,13 +31,15 @@ export default function AuthPage() {
     setMode(newMode);
   };
 
+  const isSigninMode = mode === 'signin' || signupState.success;
+
   return (
     <div>
       <div>
         <button onClick={() => handleModeChange('signin')}>ログイン</button>
         <button onClick={() => handleModeChange('signup')}>新規登録</button>
       </div>
-      {mode === 'signin' ? (
+      {isSigninMode ? (
         <form action={signinFormAction}>
           <h2>ログイン</h2>
           <input
