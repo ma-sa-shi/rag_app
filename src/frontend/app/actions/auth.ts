@@ -26,7 +26,7 @@ type signupActionResponse = {
 };
 
 export async function signinAction(
-  _prevState: any,
+  _prevState: signinActionResponse,
   formData: FormData
 ): Promise<signinActionResponse> {
   const username = String(formData.get('username') ?? '').trim();
@@ -83,7 +83,7 @@ export async function signinAction(
 }
 
 export async function signupAction(
-  _prevState: any,
+  _prevState: signupActionResponse,
   formData: FormData
 ): Promise<signupActionResponse> {
   const username = String(formData.get('username') ?? '').trim();

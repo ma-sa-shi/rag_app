@@ -13,7 +13,16 @@ export type DocFile = {
   created_at: Date;
 };
 
-export async function uploadFile(_prevState: any, formData: FormData) {
+type UploadActionResponse = {
+  success?: boolean;
+  message?: string;
+  error?: string;
+};
+
+export async function uploadFile(
+  _prevState: UploadActionResponse,
+  formData: FormData
+) {
   const userId = await getUserIdFromToken();
 
   const file = formData.get('file') as File;
