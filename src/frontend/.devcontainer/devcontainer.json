@@ -1,10 +1,8 @@
 {
-	"name": "Frontend Development",
+  "name": "Frontend Development",
 
-	"dockerComposeFile": [
-		"../../../docker-compose.yml"
-	],
-	"service": "frontend",
-	"workspaceFolder": "/app",
-	"shutdownAction": "stopCompose"
+  "dockerComposeFile": ["../../../docker-compose.yml"],
+  "service": "frontend",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose"
 }
