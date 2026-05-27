@@ -1,2 +1,7 @@
 .env
 **/__pycache__/
+/src/backend/chroma_db/*
+!/src/backend/chroma_db/.gitkeep
+/src/frontend/public/uploads
+!/src/frontend/public/uploads/.gitkeep
+/src/frontend/node_modules

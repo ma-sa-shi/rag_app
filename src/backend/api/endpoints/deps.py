@@ -1,6 +1,7 @@
 from typing import AsyncGenerator
 import aiomysql
 from fastapi import Request
+from langchain_chroma import Chroma
 
 
 async def get_db_connection(
@@ -13,3 +14,7 @@ async def get_db_connection(
         except Exception:
             await connection.rollback()
             raise
+
+
+def get_chroma_client(request: Request) -> Chroma:
+    return request.app.state.chroma_client
