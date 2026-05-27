@@ -4,6 +4,9 @@ import { pool } from '../../lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { getUserIdFromToken } from './auth';
+import { revalidatePath } from 'next/cache';
+
+const FASTAPI_URL = process.env.FASTAPI_URL;
 
 export type DocFile = {
   doc_id: number;
@@ -22,7 +25,7 @@ type UploadActionResponse = {
 export async function uploadFile(
   _prevState: UploadActionResponse,
   formData: FormData
-) {
+): Promise<UploadActionResponse> {
   const userId = await getUserIdFromToken();
 
   const file = formData.get('file') as File;
@@ -51,5 +54,63 @@ export async function uploadFile(
   } catch (error) {
     console.error('File upload failed:', error);
     return { error: 'アップロードに失敗しました' };
+  }
+}
+
+export async function getFiles(): Promise<DocFile[]> {
+  try {
+    const query = `
+      SELECT doc_id, filename, dir_path, status, created_at
+      FROM docs
+      WHERE delete_flg = FALSE
+      ORDER BY created_at DESC
+    `;
+
+    const [rows] = await pool.execute(query);
+    return rows as DocFile[];
+  } catch (error) {
+    console.error('Failed to fetch files:', error);
+    return [];
+  }
+}
+
+export async function ingestFile(docId: number) {
+  const userId = await getUserIdFromToken();
+  if (!userId) return { error: '認証が必要です' };
+
+  try {
+    await pool.execute(
+      'UPDATE docs SET status = "processing" WHERE doc_id = ?',
+      [docId]
+    );
+    revalidatePath('/documents');
+
+    const response = await fetch(
+      `${FASTAPI_URL}/documents/${docId}/embeddings`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail);
+    }
+
+    await pool.execute('UPDATE docs SET status = "ingested" WHERE doc_id = ?', [
+      docId,
+    ]);
+    revalidatePath('/documents');
+    return { success: true };
+  } catch (error) {
+    console.error('Ingestion failed:', error);
+    await pool.execute('UPDATE docs SET status = "failed" WHERE doc_id = ?', [
+      docId,
+    ]);
+    revalidatePath('/documents');
+    return { error: '取込み処理に失敗しました' };
   }
 }
