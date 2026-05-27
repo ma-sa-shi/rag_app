@@ -1,12 +1,29 @@
 {
-	"name": "Backend Development",
+  "name": "Backend Development",
+  "dockerComposeFile": ["../../../docker-compose.yml"],
+  "service": "backend",
+  "workspaceFolder": "/app",
+  "remoteUser": "vscode",
+  "shutdownAction": "stopCompose",
 
-	"dockerComposeFile": [
-		"../../../docker-compose.yml"
-	],
-	"service": "backend",
-
-	"workspaceFolder": "/app",
-	"remoteUser": "vscode",
-	"shutdownAction": "stopCompose"
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "astral-sh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/app/.venv/bin/python", // Poetryの環境を固定（パスは環境に合わせて調整してください）
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "astral-sh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
+        }
+      }
+    }
+  }
 }
