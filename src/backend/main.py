@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import aiomysql
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
+from langchain_cohere import CohereRerank
 from config import settings
 from api.endpoints.api import api_router
 
@@ -30,6 +31,8 @@ async def lifespan(app: FastAPI):
     )
     app.state.chroma_client = chroma_client
 
+    cohere_reranker = CohereRerank(model=settings.COHERE_MODEL_NAME, top_n=5)
+    app.state.cohere_reranker = cohere_reranker
     try:
         yield
     finally:
