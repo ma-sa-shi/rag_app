@@ -34,8 +34,8 @@ async def ingest_document(
         run_chroma_ingest,
         chroma_client=chroma_client,
         doc_id=doc_id,
+        filename=row.get("filename"),
         extracted_text=row.get("extracted_text"),
-        file_name=row.get("filename"),
     )
 
     return IngestResponse(

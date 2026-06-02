@@ -13,19 +13,19 @@ def reciprocal_rank_fusion(
     Returns:
         list[Document]: ドキュメントのリスト
     """
-    # { chunk_id: {score: スコア, document: Documentオブジェクト} }
+    # { doc_id: {score: スコア, document: Documentオブジェクト} }
     doc_score_map = {}
 
     for docs in retriever_outputs:
         for rank, doc in enumerate(docs):
-            chunk_id = doc.metadata.get("chunk_id")
-            if chunk_id not in doc_score_map:
-                doc_score_map[chunk_id] = {"score": 0.0, "document": doc}
-            doc_score_map[chunk_id]["score"] += 1 / (rank + k)
+            doc.id
+            if doc.id not in doc_score_map:
+                doc_score_map[doc.id] = {"score": 0.0, "document": doc}
+            doc_score_map[doc.id]["score"] += 1 / (rank + k)
 
     sorted_items = sorted(
         doc_score_map.items(),
-        key=lambda x: x[1].get("score"),
+        key=lambda x: x[1]["score"],
         reverse=True,  # 降順
     )
 
