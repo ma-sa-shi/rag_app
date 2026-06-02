@@ -7,23 +7,35 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 
 def run_chroma_ingest(
-    chroma_client, doc_id: int, file_name: str, extracted_text: str
+    chroma_client, doc_id: int, filename: str, extracted_text: str
 ) -> None:
+    """
+    Chromaにドキュメントを保存する関数
+    Args:
+        chroma_client: Chromaのインスタンス
+        doc_id (int): ドキュメントID
+        filename (str): ファイル名
+        extracted_text (str): ドキュメントから抽出されたテキスト
+    Returns:
+        None
+    """
 
     text_chunks = text_splitter.split_text(extracted_text)
 
     documents = []
     ids = []
     for i, chunk in enumerate(text_chunks):
+        chunk_id = f"{doc_id}_{i}"
         doc = Document(
             page_content=chunk,
+            id=chunk_id,
             metadata={
                 "doc_id": doc_id,
-                "file_name": file_name,
+                "filename": filename,
             },
         )
         documents.append(doc)
 
-        ids.append(f"{doc_id}_{i}")
+        ids.append(chunk_id)
 
     chroma_client.add_documents(documents=documents, ids=ids)
