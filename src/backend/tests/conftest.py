@@ -36,8 +36,8 @@ async def test_app():
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             await cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-            await cursor.execute("TRUNCATE TABLE docs")
-            await cursor.execute("TRUNCATE TABLE users")
+            await cursor.execute("DELETE FROM docs")
+            await cursor.execute("DELETE FROM users")
             await cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
 
     test_dir = tempfile.mkdtemp()
@@ -79,8 +79,8 @@ async def db_connection(test_app: FastAPI):
         finally:
             async with conn.cursor() as cursor:
                 await cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-                await cursor.execute("TRUNCATE TABLE docs")
-                await cursor.execute("TRUNCATE TABLE users")
+                await cursor.execute("DELETE FROM docs")
+                await cursor.execute("DELETE FROM users")
                 await cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
 
 

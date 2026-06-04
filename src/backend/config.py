@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     MYSQL_DATABASE: str
     MYSQL_USER: str
     MYSQL_PASSWORD: str
-    MYSQL_ROOT_PASSWORD: str
     PERSIST_DIRECTORY: str
     COHERE_MODEL_NAME: str = "rerank-v3.5"
     COHERE_API_KEY: str
@@ -30,19 +29,6 @@ class Settings(BaseSettings):
             "user": self.MYSQL_USER,
             "password": self.MYSQL_PASSWORD,
             "db": self.MYSQL_DATABASE,
-            "charset": "utf8mb4",
-            "cursorclass": aiomysql.DictCursor,
-            "autocommit": True,
-        }
-
-    @property
-    def root_db_config(self) -> dict:
-        """DB作成用のroot権限接続設定(db指定無し)"""
-        return {
-            "host": self.MYSQL_HOST,
-            "port": self.MYSQL_PORT,
-            "user": "root",
-            "password": self.MYSQL_ROOT_PASSWORD,
             "charset": "utf8mb4",
             "cursorclass": aiomysql.DictCursor,
             "autocommit": True,

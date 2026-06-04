@@ -11,18 +11,7 @@ from api.endpoints.api import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pool = await aiomysql.create_pool(
-        host=settings.MYSQL_HOST,
-        user=settings.MYSQL_USER,
-        password=settings.MYSQL_PASSWORD,
-        db=settings.MYSQL_DATABASE,
-        port=settings.MYSQL_PORT,
-        charset="utf8mb4",
-        cursorclass=aiomysql.DictCursor,  # 辞書形式で結果を取得
-        minsize=2,  # 初期接続数
-        maxsize=5,  # 最大接続数
-        autocommit=True,
-    )
+    pool = await aiomysql.create_pool(minsize=2, maxsize=5, **settings.db_config)
     app.state.db_pool = pool
 
     embedding = OpenAIEmbeddings(model=settings.OPENAI_EMBEDDING_MODEL_NAME)
