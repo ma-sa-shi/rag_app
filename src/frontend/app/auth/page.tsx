@@ -2,9 +2,10 @@
 
 import { useState, useActionState, useEffect } from 'react';
 import { signinAction, signupAction } from '../actions/auth';
+import { AuthMode } from '../../types/auth';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [signinState, signinFormAction, isSigninPending] = useActionState(
     signinAction,
     { error: null }

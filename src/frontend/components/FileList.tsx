@@ -1,7 +1,8 @@
 'use client';
 
 import { useTransition } from 'react';
-import { ingestFile, type DocFile } from '../app/actions/file';
+import { ingestFile } from '../app/actions/file';
+import { DocFile } from '../types/file';
 
 export default function FileList({ files }: { files: DocFile[] }) {
   // 重い処理を実行中にもUIを応答させるuseTransitionを使用
