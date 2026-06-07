@@ -5,7 +5,7 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_chat_stream_success(client: AsyncClient, test_app):
+async def test_chat_stream_success(client: AsyncClient, test_app, auth_headers):
     chroma_client = test_app.state.chroma_client
     chroma_client.add_texts(
         texts=[
@@ -16,7 +16,9 @@ async def test_chat_stream_success(client: AsyncClient, test_app):
     payload = {
         "question": "Pytestのfixtureでscope='session'とscope='function'の違いは何ですか?"
     }
-    response = await client.post("/api/chats/stream", json=payload)
+    response = await client.post(
+        "/api/chats/stream", headers=auth_headers, json=payload
+    )
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
@@ -58,9 +60,13 @@ async def test_chat_stream_success(client: AsyncClient, test_app):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_chat_stream_failure(client: AsyncClient):
+async def test_chat_stream_failure(client: AsyncClient, auth_headers):
+
     payload = {"question": "Poetryの利点は何ですか?"}
-    response = await client.post("/api/chats/stream", json=payload)
+
+    response = await client.post(
+        "/api/chats/stream", headers=auth_headers, json=payload
+    )
     assert response.status_code == 200
     assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
     passed_nodes = []

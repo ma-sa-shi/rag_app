@@ -10,6 +10,7 @@ from services.rag.nodes import (
     analyze_failure_node,
 )
 from services.rag.schemas import GraphState
+from api.endpoints.deps import get_logicFn_logger
 
 
 def decide_to_finish(state: GraphState):
@@ -20,11 +21,26 @@ def decide_to_finish(state: GraphState):
     Returns:
         str: 次のステップ ("finish", "force_finish", "retry")
     """
-    if state.get("grade")[-1] == "useful":
+    user_id = state.get("user_id", "unknown_user")
+    request_id = state.get("request_id", "unknown_request")
+    retry_count = state.get("retry_count")
+    current_grade = state.get("grade")[-1]
+
+    if current_grade == "useful":
+        logger.info(
+            f"[decide_to_finish] Finished. Grade is useful. | User: {user_id} | Request: {request_id}"
+        )
         return "finish"
 
-    if state.get("retry_count") == 2:
+    if retry_count == 2:
+        logger.info(
+            f"[decide_to_finish] Reached max retry. | User: {user_id} | Request: {request_id}"
+        )
         return "force_finish"
+
+    logger.info(
+        f"[decide_to_finish] Retried. | User: {user_id} | Request: {request_id} | Grade: {current_grade} | Retry: {retry_count}"
+    )
 
     return "retry"
 
@@ -55,6 +71,8 @@ workflow.add_edge("analyze_failure_node", END)
 
 compiled = workflow.compile()
 
+logger = get_logicFn_logger()
+
 
 async def generate_stream(question: str, config: dict) -> AsyncGenerator[str, None]:
     """
@@ -65,9 +83,26 @@ async def generate_stream(question: str, config: dict) -> AsyncGenerator[str, No
     Yields:
         str: GraphState
     """
-    async for output in compiled.astream(
-        {"question": question}, config=config, stream_mode="updates"
-    ):
-        # Documentオブジェクトも辞書型に平滑化し、json.dumpsが扱える型に変換
-        serializable_output = jsonable_encoder(output)
-        yield f"data: {json.dumps(serializable_output, ensure_ascii=False)}\n\n"
+    configurable = config.get("configurable", {})
+    user_id = configurable.get("user_id", "unknown_user")
+    request_id = configurable.get("request_id", "unknown_request")
+    logger.info(
+        f"[generate_stream] Started. | User: {user_id} | Request: {request_id} | Question: {question[:50]}"
+    )
+    try:
+        async for output in compiled.astream(
+            {"question": question, "user_id": user_id, "request_id": request_id},
+            config=config,
+            stream_mode="updates",
+        ):
+            # Documentオブジェクトも辞書型に平滑化し、json.dumpsが扱える型に変換
+            serializable_output = jsonable_encoder(output)
+            yield f"data: {json.dumps(serializable_output, ensure_ascii=False)}\n\n"
+        logger.info(
+            f"[generate_stream] Finished. | User: {user_id} | Request: {request_id}"
+        )
+    except Exception as e:
+        logger.exception(
+            f"[generate_stream] User: {user_id} | Request: {request_id} | Error: {str(e)}"
+        )
+        raise

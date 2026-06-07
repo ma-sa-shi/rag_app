@@ -75,6 +75,7 @@ export async function getFiles(): Promise<DocFile[]> {
 }
 
 export async function ingestFile(docId: number) {
+  const requestId = crypto.randomUUID();
   const userId = await getUserIdFromToken();
   if (!userId) return { error: '認証が必要です' };
 
@@ -91,6 +92,8 @@ export async function ingestFile(docId: number) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-User-Id': String(userId),
+          'X-Request-ID': requestId,
         },
       }
     );

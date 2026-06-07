@@ -52,3 +52,5 @@ class GraphState(TypedDict):
     feedback: Annotated[list[str], operator.add]
     retry_count: int
     failure_analysis: str
+    user_id: str
+    request_id: str

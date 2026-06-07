@@ -10,6 +10,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_cohere import CohereRerank
 
+
 from main import app as dev_app
 from config import settings
 
@@ -96,3 +97,9 @@ async def test_user(db_connection):
             (user_id, username, hashed_password),
         )
     yield user_id
+
+
+# ヘッダーの作成
+@pytest_asyncio.fixture(scope="function")
+async def auth_headers(test_user):
+    return {"X-User-Id": str(test_user), "X-Request-Id": "test_request"}

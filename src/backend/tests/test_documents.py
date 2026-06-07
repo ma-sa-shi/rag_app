@@ -6,7 +6,7 @@ from aiomysql import Connection
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_ingest_document_success(
-    client: AsyncClient, db_connection: Connection, test_app, test_user
+    client: AsyncClient, db_connection: Connection, test_app, test_user, auth_headers
 ):
 
     doc_id = 1000
@@ -19,7 +19,9 @@ async def test_ingest_document_success(
             (doc_id, test_user, filename, extracted_text, False),
         )
 
-    response = await client.post(f"/api/documents/{doc_id}/embeddings")
+    response = await client.post(
+        f"/api/documents/{doc_id}/embeddings", headers=auth_headers
+    )
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 
@@ -36,9 +38,12 @@ async def test_ingest_document_success(
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_ingest_document_not_found(client: AsyncClient):
+async def test_ingest_document_not_found(client: AsyncClient, auth_headers):
+
     doc_id = 1000
-    response = await client.post(f"/api/documents/{doc_id}/embeddings")
+    response = await client.post(
+        f"/api/documents/{doc_id}/embeddings", headers=auth_headers
+    )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "ドキュメントが見つかりません"
@@ -46,8 +51,9 @@ async def test_ingest_document_not_found(client: AsyncClient):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_ingest_document_deleted(
-    client: AsyncClient, db_connection: Connection, test_user
+    client: AsyncClient, db_connection: Connection, test_user, auth_headers
 ):
+
     doc_id = 1000
 
     async with db_connection.cursor() as cursor:
@@ -56,6 +62,8 @@ async def test_ingest_document_deleted(
             (doc_id, test_user, "deleted.txt", "削除済みテキスト", True),
         )
 
-    response = await client.post(f"/api/documents/{doc_id}/embeddings")
+    response = await client.post(
+        f"/api/documents/{doc_id}/embeddings", headers=auth_headers
+    )
     assert response.status_code == 404
     assert response.json()["detail"] == "ドキュメントが見つかりません"
