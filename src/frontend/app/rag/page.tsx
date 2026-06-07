@@ -1,6 +1,6 @@
 'use client';
 import { useState, SubmitEvent } from 'react';
-import { NodeOutput, DocumentData } from './_types/rag';
+import { NodeOutput, DocumentData, GradeInfo } from '../../types/rag';
 
 export default function RagChatPage() {
   const [question, setQuestion] = useState('');
@@ -10,10 +10,7 @@ export default function RagChatPage() {
   const [queries, setQueries] = useState<string[]>([]);
   const [contexts, setContexts] = useState<DocumentData[]>([]);
   const [answer, setAnswer] = useState<string>('');
-  const [gradeInfo, setGradeInfo] = useState<{
-    grade: string;
-    feedback: string;
-  } | null>(null);
+  const [gradeInfo, setGradeInfo] = useState<GradeInfo | null>(null);
   const [failureAnalysis, setFailureAnalysis] = useState<string>('');
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {

@@ -5,22 +5,13 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { getUserIdFromToken } from './auth';
 import { revalidatePath } from 'next/cache';
+import {
+  DocFile,
+  UploadActionResponse,
+  IngestActionResponse,
+} from '../../types/file';
 
 const FASTAPI_URL = process.env.FASTAPI_URL;
-
-export type DocFile = {
-  doc_id: number;
-  filename: string;
-  dir_path: string;
-  status: 'uploaded' | 'processing' | 'ingested' | 'failed';
-  created_at: Date;
-};
-
-type UploadActionResponse = {
-  success?: boolean;
-  message?: string;
-  error?: string;
-};
 
 export async function uploadFile(
   _prevState: UploadActionResponse,
@@ -74,7 +65,7 @@ export async function getFiles(): Promise<DocFile[]> {
   }
 }
 
-export async function ingestFile(docId: number) {
+export async function ingestFile(docId: number): Promise<IngestActionResponse> {
   const requestId = crypto.randomUUID();
   const userId = await getUserIdFromToken();
   if (!userId) return { error: '認証が必要です' };

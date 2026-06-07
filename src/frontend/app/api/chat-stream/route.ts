@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromToken } from '@/app/actions/auth';
 import { StatusCodes } from 'http-status-codes';
+import { ChatStreamRequest } from '@/types/rag';
 
 const FASTAPI_URL = process.env.FASTAPI_URL;
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { question } = await request.json();
+  const { question }: ChatStreamRequest = await request.json();
 
   try {
     const response = await fetch(`${FASTAPI_URL}/chats/stream`, {

@@ -1,34 +1,22 @@
 'use server';
-
+import {
+  UserRow,
+  SigninActionResponse,
+  SignupActionResponse,
+  JWTPayloadData,
+} from '../../types/auth';
 import { pool } from '../../lib/db';
 import * as argon2 from 'argon2';
 import * as jose from 'jose';
 import { cookies } from 'next/headers';
-import { RowDataPacket } from 'mysql2';
 import { redirect } from 'next/navigation';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
-type UserRow = RowDataPacket & {
-  user_id: number;
-  username: string;
-  hashed_password: string;
-  is_admin: boolean;
-  delete_flg: boolean;
-};
-
-type signinActionResponse = {
-  error: string | null;
-};
-type signupActionResponse = {
-  success: boolean;
-  error: string | null;
-};
-
 export async function signinAction(
-  _prevState: signinActionResponse,
+  _prevState: SigninActionResponse,
   formData: FormData
-): Promise<signinActionResponse> {
+): Promise<SigninActionResponse> {
   const username = String(formData.get('username') ?? '').trim();
   const password = String(formData.get('password') ?? '');
 
@@ -58,11 +46,12 @@ export async function signinAction(
         error: 'ユーザー名またはパスワードが正しくありません。',
       };
     }
-    const token = await new jose.SignJWT({
+    const payload: JWTPayloadData = {
       userId: user.user_id,
       username: user.username,
       isAdmin: !!user.is_admin,
-    })
+    };
+    const token = await new jose.SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('2h')
@@ -83,9 +72,9 @@ export async function signinAction(
 }
 
 export async function signupAction(
-  _prevState: signupActionResponse,
+  _prevState: SignupActionResponse,
   formData: FormData
-): Promise<signupActionResponse> {
+): Promise<SignupActionResponse> {
   const username = String(formData.get('username') ?? '').trim();
   const password = String(formData.get('password') ?? '');
 
