@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     MYSQL_USER: str
     MYSQL_PASSWORD: str
     PERSIST_DIRECTORY: str
+    LOG_DIR: str = "/app/log"
     COHERE_MODEL_NAME: str = "rerank-v3.5"
     COHERE_API_KEY: str
     OPENAI_MODEL_NAME: str = "gpt-5-nano"

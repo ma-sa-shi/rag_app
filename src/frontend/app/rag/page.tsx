@@ -28,13 +28,22 @@ export default function RagChatPage() {
     setAnswer('');
     setGradeInfo(null);
     setFailureAnalysis('');
-
+    const requestId = crypto.randomUUID();
     try {
-      const response = await fetch('http://localhost:8000/api/chats/stream', {
+      const response = await fetch('/api/chat-stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId,
+        },
         body: JSON.stringify({ question }),
       });
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'エラーが発生しました' }));
+        throw new Error(errorData.error || '通信エラーが発生しました');
+      }
       if (!response.body) throw new Error('ReadableStreamが利用できません。');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
