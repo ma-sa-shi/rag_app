@@ -1,11 +1,11 @@
 'use client';
 import { useState, SubmitEvent } from 'react';
-import { NodeOutput, DocumentData, GradeInfo } from '../../types/rag';
+import { NodeOutput, DocumentData, GradeInfo } from '@/types/rag';
+import { logger } from '@/lib/logger';
 
 export default function RagChatPage() {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
-
   const [currentStatus, setCurrentStatus] = useState<string>('');
   const [queries, setQueries] = useState<string[]>([]);
   const [contexts, setContexts] = useState<DocumentData[]>([]);
@@ -38,10 +38,14 @@ export default function RagChatPage() {
       if (!response.ok) {
         const errorData = await response
           .json()
-          .catch(() => ({ error: 'エラーが発生しました' }));
-        throw new Error(errorData.error || '通信エラーが発生しました');
+          .catch(() => ({ detail: 'Unknown error' }));
+        logger.error(
+          { err: errorData, context: { requestId } },
+          `FastAPI returned status ${response.status}`
+        );
+        throw new Error(`FastAPI Stream Error`);
       }
-      if (!response.body) throw new Error('ReadableStreamが利用できません。');
+      if (!response.body) throw new Error('ReadableStream is not available.');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -61,7 +65,6 @@ export default function RagChatPage() {
           const jsonStr = line.slice(6);
           try {
             const nodeData: NodeOutput = JSON.parse(jsonStr);
-
             if (
               'generate_queries_node' in nodeData &&
               nodeData.generate_queries_node
@@ -116,7 +119,17 @@ export default function RagChatPage() {
               setFailureAnalysis(data.failure_analysis);
             }
           } catch (error) {
-            console.error('JSONパースエラー:', error);
+            // client側ではpinoは軽量化するのでErrorオブジェクトの解析が必要
+            logger.error(
+              {
+                err:
+                  error instanceof Error
+                    ? { message: error.message, name: error.name }
+                    : String(error),
+                context: { requestId },
+              },
+              'Failed to parse SSE JSON payload'
+            );
           }
         }
       }
@@ -126,7 +139,17 @@ export default function RagChatPage() {
           : prev
       );
     } catch (error) {
-      console.error('ストリーム接続エラー:', error);
+      // client側ではpinoは軽量化するのでErrorオブジェクトの解析が必要
+      logger.error(
+        {
+          err:
+            error instanceof Error
+              ? { message: error.message, name: error.name }
+              : String(error),
+          context: { requestId },
+        },
+        'Stream connection or processing failed'
+      );
       setCurrentStatus('エラーが発生しました');
     } finally {
       setLoading(false);

@@ -4,14 +4,14 @@ import {
   SigninActionResponse,
   SignupActionResponse,
   JWTPayloadData,
-} from '../../types/auth';
-import { pool } from '../../lib/db';
+} from '@/types/auth';
+import { pool } from '@/lib/db';
 import * as argon2 from 'argon2';
 import * as jose from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+import { JWT_SECRET } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 export async function signinAction(
   _prevState: SigninActionResponse,
@@ -65,8 +65,13 @@ export async function signinAction(
       maxAge: 60 * 60 * 2,
     });
   } catch (error) {
-    console.error('Login error:', error);
-    return { error: 'エラーが発生しました。' };
+    logger.error(
+      { err: error, context: { username } },
+      'Signin process failed'
+    );
+    return {
+      error: 'システムエラーが発生しました。時間をおいて再度お試しください。',
+    };
   }
   redirect('/');
 }
@@ -100,8 +105,8 @@ export async function signupAction(
     );
     return { success: true, error: null };
   } catch (error) {
-    console.error('Register error:', error);
-    return { success: false, error: 'エラーが発生しました。' };
+    logger.error({ err: error, context: username }, 'Signup process failed');
+    return { success: false, error: '登録中にエラーが発生しました。' };
   }
 }
 
@@ -114,7 +119,7 @@ export async function getUserIdFromToken(): Promise<number | null> {
     const { payload } = await jose.jwtVerify(token, JWT_SECRET);
     return payload.userId as number;
   } catch (error) {
-    console.error('JWT verification failed:', error);
+    logger.error({ err: error }, 'JWT verification failed');
     return null;
   }
 }

@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromToken } from '@/app/actions/auth';
 import { StatusCodes } from 'http-status-codes';
 import { ChatStreamRequest } from '@/types/rag';
-
-const FASTAPI_URL = process.env.FASTAPI_URL;
+import { FASTAPI_URL } from '@/lib/env';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   const requestId = request.headers.get('X-Request-ID') || crypto.randomUUID();
 
   const userId = await getUserIdFromToken();
   if (!userId) {
+    logger.warn({ context: { requestId } }, 'Unauthorized chat stream request');
     return NextResponse.json(
       { error: '認証が必要です' },
       { status: StatusCodes.UNAUTHORIZED }
@@ -30,8 +31,15 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok || !response.body) {
+      logger.error(
+        { context: { requestId, userId, httpStatus: response.status } },
+        'FastAPI stream response was not OK'
+      );
       return NextResponse.json(
-        { error: 'FastAPI側でエラーが発生しました' },
+        {
+          error:
+            '回答の生成中にエラーが発生しました。時間を置いて再度お試しください。',
+        },
         { status: response.status }
       );
     }
@@ -44,9 +52,12 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error(`[${requestId}] Stream proxy error:`, error);
+    logger.error(
+      { err: error, context: { requestId, userId } },
+      'Stream proxy server error occurred'
+    );
     return NextResponse.json(
-      { error: 'サーバーエラーが発生しました' },
+      { error: 'サーバーで予期せぬエラーが発生しました' },
       { status: StatusCodes.INTERNAL_SERVER_ERROR }
     );
   }

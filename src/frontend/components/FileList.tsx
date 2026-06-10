@@ -1,20 +1,34 @@
 'use client';
 
-import { useTransition } from 'react';
-import { ingestFile } from '../app/actions/file';
-import { DocFile } from '../types/file';
+import { useTransition, useState } from 'react';
+import { ingestFile } from '@/app/actions/file';
+import { DocFile } from '@/types/file';
+import { logger } from '@/lib/logger';
 
 export default function FileList({ files }: { files: DocFile[] }) {
   // 重い処理を実行中にもUIを応答させるuseTransitionを使用
   const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleIngest = (docId: number) => {
     if (isPending) return;
+    setErrorMessage(null);
 
     startTransition(async () => {
-      const result = await ingestFile(docId);
-      if (result?.error) {
-        alert(result.error);
+      const requestId = crypto.randomUUID();
+      try {
+        const result = await ingestFile(docId, requestId);
+        if (result?.error) {
+          setErrorMessage(result.error);
+        }
+      } catch (error) {
+        logger.error(
+          { err: error, context: { requestId, docId } },
+          'Failed to trigger file ingestion from client'
+        );
+        setErrorMessage(
+          '取込み処理の開始に失敗しました。時間をおいて再度お試しください。'
+        );
       }
     });
   };
@@ -22,6 +36,11 @@ export default function FileList({ files }: { files: DocFile[] }) {
   return (
     <div>
       <h3>アップロード済みファイル一覧</h3>
+      {errorMessage && (
+        <div>
+          <span>{errorMessage}</span>
+        </div>
+      )}
       <table>
         <thead>
           <tr>
