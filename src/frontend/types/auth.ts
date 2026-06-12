@@ -1,6 +1,14 @@
 import { RowDataPacket } from 'mysql2';
 
 /**
+ * ユーザ登録後にモードを切り替える関数の型
+ */
+
+export type SignUpFormProps = {
+  onSuccess: () => void;
+};
+
+/**
  * usersテーブルから取得するレコードのデータ構造
  */
 export type UserRow = RowDataPacket & {
@@ -20,6 +28,7 @@ export type AuthMode = 'signin' | 'signup';
  * ログイン処理 (signinAction) のレスポンス
  */
 export type SigninActionResponse = {
+  success: boolean;
   error: string | null;
 };
 

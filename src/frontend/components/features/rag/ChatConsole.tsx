@@ -1,8 +1,12 @@
 'use client';
 import { useState, SubmitEvent } from 'react';
+
 import { NodeOutput, DocumentData, GradeInfo } from '@/types/rag';
 import { logger } from '@/lib/logger';
 
+/**
+ * SSEストリーム通信を行い、nodesの出力をリアルタイムに表示するコンポーネント
+ */
 export default function RagChatPage() {
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,6 +19,7 @@ export default function RagChatPage() {
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // 連打による重複リクエストと空文字送信の防止
     if (!question.trim() || loading) return;
 
     // 前回の状態をリセット
@@ -56,6 +61,7 @@ export default function RagChatPage() {
 
         buffer += decoder.decode(value, { stream: true });
         const parts = buffer.split('\n\n');
+        // splitしたデータの最後は不完全なデータのためbufferに戻し次の受信データと結合しJSON.parseエラーを回避
         buffer = parts.pop() || '';
 
         for (const part of parts) {
@@ -76,6 +82,7 @@ export default function RagChatPage() {
                   : '検索クエリを生成中'
               );
               if (data.queries && data.queries.length > 0) {
+                // 最新のQueriesを表示する
                 setQueries(data.queries[data.queries.length - 1]);
               }
             } else if (
@@ -139,7 +146,7 @@ export default function RagChatPage() {
           : prev
       );
     } catch (error) {
-      // client側ではpinoは軽量化するのでErrorオブジェクトの解析が必要
+      // client側のpinoロガーは軽量化されるため、Errorオブジェクトの解析が必要
       logger.error(
         {
           err:
@@ -158,7 +165,7 @@ export default function RagChatPage() {
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        <h2>質問</h2>
+        <h3>質問</h3>
         <input
           type="text"
           value={question}

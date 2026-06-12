@@ -1,18 +1,18 @@
 'use server';
 
-import { pool } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { getUserIdFromToken } from '@/app/actions/auth';
 import { revalidatePath } from 'next/cache';
-import {
-  DocFile,
-  UploadActionResponse,
-  IngestActionResponse,
-} from '@/types/file';
-import { logger } from '@/lib/logger';
-import { FASTAPI_URL } from '@/lib/env';
+import { join } from 'path';
 
+import { UploadActionResponse, IngestActionResponse } from '@/types/file';
+import { getUserIdFromToken } from '@/lib/auth';
+import { pool } from '@/lib/db';
+import { FASTAPI_URL } from '@/lib/env';
+import { logger } from '@/lib/logger';
+
+/**
+ * ユーザーがアップロードしたファイルをサーバに保存し、DBにメタデータを登録するServerAction
+ */
 export async function uploadFile(
   _prevState: UploadActionResponse | null,
   formData: FormData
@@ -54,23 +54,9 @@ export async function uploadFile(
   }
 }
 
-export async function getFiles(): Promise<DocFile[]> {
-  try {
-    const query = `
-      SELECT doc_id, filename, dir_path, status, created_at
-      FROM docs
-      WHERE delete_flg = FALSE
-      ORDER BY created_at DESC
-    `;
-
-    const [rows] = await pool.execute(query);
-    return rows as DocFile[];
-  } catch (error) {
-    logger.error({ err: error }, 'Failed to fetch files from DB');
-    return [];
-  }
-}
-
+/**
+ * chormaに保存するリクエストをFastAPIのembedding APIに送信するServerAction
+ */
 export async function ingestFile(
   docId: number,
   requestId: string = crypto.randomUUID()
@@ -83,6 +69,7 @@ export async function ingestFile(
       'UPDATE docs SET status = "processing" WHERE doc_id = ?',
       [docId]
     );
+    // ベクトル化処理に時間がかかることがあり、ファイルの状態を更新するため
     revalidatePath('/documents');
 
     const response = await fetch(
@@ -121,6 +108,7 @@ export async function ingestFile(
         docId,
       ]);
       revalidatePath('/documents');
+      // 2次エラーによりシステムがクラッシュするのを防ぐため2重にtry-catch
     } catch (error) {
       logger.error(
         { err: error, context: { requestId, docId } },

@@ -1,8 +1,9 @@
-import UploadForm from '@/components/UploadForm';
-import { getFiles } from '@/app/actions/file';
-import FileList from '@/components/FileList';
 import { redirect } from 'next/navigation';
-import { getUserIdFromToken } from '../actions/auth';
+
+import UploadForm from '@/components/features/documents/UploadForm';
+import FileList from '@/components/features/documents/FileList';
+import { getFiles } from '@/lib/file';
+import { getUserIdFromToken } from '@/lib/auth';
 
 export default async function UploadPage() {
   const userId = await getUserIdFromToken();

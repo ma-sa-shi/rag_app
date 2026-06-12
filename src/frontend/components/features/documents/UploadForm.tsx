@@ -1,6 +1,6 @@
 'use client';
 import { useActionState } from 'react';
-import { uploadFile } from '@/app/actions/file';
+import { uploadFile } from '@/app/actions/file-actions';
 
 export default function UploadForm() {
   const [state, formAction, isPending] = useActionState(uploadFile, null);
