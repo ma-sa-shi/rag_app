@@ -1,4 +1,9 @@
 'use server';
+import * as argon2 from 'argon2';
+import * as jose from 'jose';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
 import {
   UserRow,
   SigninActionResponse,
@@ -6,13 +11,12 @@ import {
   JWTPayloadData,
 } from '@/types/auth';
 import { pool } from '@/lib/db';
-import * as argon2 from 'argon2';
-import * as jose from 'jose';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { JWT_SECRET } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
+/**
+ * ユーザーのログイン認証を行い、成功時にJWTを発行するServerAction
+ */
 export async function signinAction(
   _prevState: SigninActionResponse,
   formData: FormData
@@ -22,6 +26,7 @@ export async function signinAction(
 
   if (!username || !password) {
     return {
+      success: false,
       error: 'ユーザー名とパスワードを入力してください。',
     };
   }
@@ -36,6 +41,8 @@ export async function signinAction(
 
     if (!user) {
       return {
+        success: false,
+        // 弾かれる理由を特定させない
         error: 'ユーザー名またはパスワードが正しくありません。',
       };
     }
@@ -43,12 +50,15 @@ export async function signinAction(
     const isPasswordValid = await argon2.verify(user.hashed_password, password);
     if (!isPasswordValid) {
       return {
+        success: false,
+        // 弾かれる理由を特定させない
         error: 'ユーザー名またはパスワードが正しくありません。',
       };
     }
     const payload: JWTPayloadData = {
       userId: user.user_id,
       username: user.username,
+      // !!でtrueかfalseに型変換
       isAdmin: !!user.is_admin,
     };
     const token = await new jose.SignJWT(payload)
@@ -58,8 +68,10 @@ export async function signinAction(
       .sign(JWT_SECRET);
     const cookieStore = await cookies();
     cookieStore.set('session_token', token, {
+      // DOM操作(document.cookie)により読み取られないようにするため
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      // 他サイトからのリクエストにCookieを添付しない
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 2,
@@ -70,12 +82,17 @@ export async function signinAction(
       'Signin process failed'
     );
     return {
+      success: false,
       error: 'システムエラーが発生しました。時間をおいて再度お試しください。',
     };
   }
+  // redirectはErrorをthrowするのでtry-catchの外に
   redirect('/');
 }
 
+/**
+ * ユーザーの新規登録を行うServerAction
+ */
 export async function signupAction(
   _prevState: SignupActionResponse,
   formData: FormData
@@ -107,19 +124,5 @@ export async function signupAction(
   } catch (error) {
     logger.error({ err: error, context: username }, 'Signup process failed');
     return { success: false, error: '登録中にエラーが発生しました。' };
-  }
-}
-
-export async function getUserIdFromToken(): Promise<number | null> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session_token')?.value;
-    if (!token) return null;
-
-    const { payload } = await jose.jwtVerify(token, JWT_SECRET);
-    return payload.userId as number;
-  } catch (error) {
-    logger.error({ err: error }, 'JWT verification failed');
-    return null;
   }
 }

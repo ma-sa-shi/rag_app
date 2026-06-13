@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getUserIdFromToken } from '@/app/actions/auth';
 import { StatusCodes } from 'http-status-codes';
+
 import { ChatStreamRequest } from '@/types/rag';
+import { getUserIdFromToken } from '@/lib/auth';
 import { FASTAPI_URL } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
+/**
+ * フロントエンドからの質問をFastAPIのRAG Streaming APIへプロキシするAPI Route
+ */
 export async function POST(request: Request) {
   const requestId = request.headers.get('X-Request-ID') || crypto.randomUUID();
 

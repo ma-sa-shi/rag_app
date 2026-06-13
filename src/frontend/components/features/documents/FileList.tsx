@@ -1,10 +1,13 @@
 'use client';
-
 import { useTransition, useState } from 'react';
-import { ingestFile } from '@/app/actions/file';
+
+import { ingestFile } from '@/app/actions/file-actions';
 import { DocFile } from '@/types/file';
 import { logger } from '@/lib/logger';
 
+/**
+ * アップロード済みファイルの一覧を表示し、取込みボタンを表示するclient component
+ */
 export default function FileList({ files }: { files: DocFile[] }) {
   // 重い処理を実行中にもUIを応答させるuseTransitionを使用
   const [isPending, startTransition] = useTransition();
@@ -70,6 +73,7 @@ export default function FileList({ files }: { files: DocFile[] }) {
               <td>
                 <button
                   onClick={() => handleIngest(file.doc_id)}
+                  // 取込み中はボタンを非活性化、失敗時はリトライするため活性化
                   disabled={
                     isPending ||
                     file.status === 'processing' ||
