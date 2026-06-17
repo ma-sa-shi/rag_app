@@ -82,7 +82,7 @@ async def retrieve_contexts_node(state: GraphState, config: RunnableConfig):
         doc.metadata.get("filename", "unknown_file") for doc in selected_docs
     ]
     logger.info(
-        "[retrieve_contexts_node] Finished. Queries_count: %s, Filtered: %s -> %s, Selected Doc Srcs: %s",
+        "[retrieve_contexts_node] Finished. Queries: %s, Filtered: %s -> %s, Selected Doc Srcs: %s",
         queries,
         total_raw_count,
         len(selected_docs),
