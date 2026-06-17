@@ -20,11 +20,15 @@ async def chat_stream(
     logger: Logger = Depends(get_chats_logger),
 ):
     logger.info(
-        f"[chat_stream] User: {x_user_id} | Request: {x_request_id} | Question: {payload.question[:50]}"
+        "[chat_stream] Started. Question: %s",
+        payload.question[:50],
+        extra={"user_id": x_user_id, "request_id": x_request_id},
     )
     if not x_user_id or x_user_id == "None" or x_request_id == "unknown_request":
         logger.warning(
-            f"[chat_stream] Blocked invalid request. User: {x_user_id}, Request: {x_request_id}"
+            "[chat_stream] Blocked invalid request. Question: %s",
+            payload.question[:50],
+            extra={"user_id": x_user_id, "request_id": x_request_id},
         )
 
     try:
@@ -46,6 +50,7 @@ async def chat_stream(
         )
     except Exception as e:
         logger.exception(
-            f"[Chat Stream] User: {x_user_id} | Request: {x_request_id} | Error: {str(e)}"
+            "[chat_stream] Failed",
+            extra={"user_id": x_user_id, "request_id": x_request_id},
         )
-        raise
+        raise e

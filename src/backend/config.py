@@ -1,15 +1,16 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Literal
 import aiomysql
 
 
 class Settings(BaseSettings):
+    ENV: Literal["dev", "prod"] = "dev"
     MYSQL_HOST: str
     MYSQL_PORT: int
     MYSQL_DATABASE: str
     MYSQL_USER: str
     MYSQL_PASSWORD: str
     PERSIST_DIRECTORY: str
-    LOG_DIR: str = "/app/log"
     COHERE_MODEL_NAME: str = "rerank-v3.5"
     COHERE_API_KEY: str
     OPENAI_MODEL_NAME: str = "gpt-5-nano"

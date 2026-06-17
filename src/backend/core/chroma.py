@@ -25,12 +25,15 @@ def run_chroma_ingest(
         filename (str): ファイル名
         extracted_text (str): ドキュメントから抽出されたテキスト
         user_id (str): ユーザーID
-        request_id (str): セッションID
+        request_id (str): リクエストID
     Returns:
         None
     """
     logger.info(
-        f"[run_chroma_ingest] Started. | User: {user_id} | Request: {request_id} | Document: {doc_id} | Filename: {filename}"
+        "[run_chroma_ingest] Started. Document_ID: %s, Filename: %s",
+        doc_id,
+        filename,
+        extra={"user_id": user_id, "request_id": request_id},
     )
     try:
         text_chunks = text_splitter.split_text(extracted_text)
@@ -53,9 +56,16 @@ def run_chroma_ingest(
 
         chroma_client.add_documents(documents=documents, ids=ids)
         logger.info(
-            f"[run_chroma_ingest] Finished | User: {user_id} | Request: {request_id} | Chunks: {len(documents)}"
+            "[run_chroma_ingest] Finished. Document_ID: %s, Chunks_count: %s",
+            doc_id,
+            len(documents),
+            extra={"user_id": user_id, "request_id": request_id},
         )
     except Exception as e:
         logger.exception(
-            f"[run_chroma_ingest] Error | User: {user_id} | Request: {request_id} | Document: {doc_id} | Filename: {filename} | Error: {str(e)}"
+            "[run_chroma_ingest] Failed. Document_ID: %s, FileName: %s",
+            doc_id,
+            filename,
+            extra={"user_id": user_id, "request_id": request_id},
         )
+        raise e
