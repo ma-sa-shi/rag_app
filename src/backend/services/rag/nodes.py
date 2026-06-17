@@ -17,16 +17,20 @@ async def generate_queries_node(state: GraphState, config: RunnableConfig):
     質問を複数のクエリに変換するノード。
     Args:
         state (GraphState): 現在のグラフの状態
+        config (RunnableConfig): chromaとcohereのインスタンス
     Returns:
-        dict: 生成されたクエリ {"queries": list[list[str]]}
+        dict: 生成されたクエリとリトライ回数 {"queries": list[list[str]], "retry_count": int}
     """
 
     user_id = state.get("user_id", "unknown_user")
     request_id = state.get("request_id", "unknown_request")
-    retry_count = state.get("retry_count", 0) + 1
+    retry_count = state.get("retry_count")
     question = state.get("question")
 
     feedback = state.get("feedback")
+
+    if state.get("queries"):
+        retry_count = state.get("retry_count", 0) + 1
 
     if feedback:
         feedback = f"フィードバック: {feedback[-1]}"
@@ -38,11 +42,12 @@ async def generate_queries_node(state: GraphState, config: RunnableConfig):
     )
 
     logger.info(
-        f"[generate_queries_node] Finished. | User: {user_id} | Request: {request_id} |"
-        f"Retry_count: {retry_count} |"
-        f"Question: {question[:50]} | "
-        f"Feedback: {feedback[7:57] if feedback else 'None'} |"
-        f"Queries: {queries}"
+        "[generate_queries_node] Finished. Retry_count: %s, Question: %s, Feedback: %s, Queries: %s",
+        retry_count,
+        question[:50],
+        feedback[7:57] if feedback else "None",
+        queries,
+        extra={"user_id": user_id, "request_id": request_id},
     )
     return {"queries": [queries], "retry_count": retry_count}
 
@@ -77,16 +82,16 @@ async def retrieve_contexts_node(state: GraphState, config: RunnableConfig):
         doc.metadata.get("filename", "unknown_file") for doc in selected_docs
     ]
     logger.info(
-        f"[retrieve_contexts_node] Finished. | "
-        f"User: {user_id} | Request: {request_id} | "
-        f"Queries: {queries} |"
-        f"Filtered: {total_raw_count} -> {len(selected_docs)} |"
-        f"Selected Doc Srcs: {doc_sources}"
+        "[retrieve_contexts_node] Finished. Queries_count: %s, Filtered: %s -> %s, Selected Doc Srcs: %s",
+        queries,
+        total_raw_count,
+        len(selected_docs),
+        doc_sources,
+        extra={"user_id": user_id, "request_id": request_id},
     )
     return {"documents": [selected_docs]}
 
 
-# documentsを基に回答を生成するノード
 async def generate_answer_node(state: GraphState):
     """
     documentsを基に回答を生成するノード。
@@ -105,11 +110,11 @@ async def generate_answer_node(state: GraphState):
     doc_sources = [doc.metadata.get("filename", "unknown") for doc in current_docs]
     clean_answer = answer.replace("\n", " ")
     logger.info(
-        f"[generate_answer_node] Finished. | "
-        f"User: {user_id} | Request: {request_id} | "
-        f"Retry_count: {retry_count} | "
-        f"Doc Srcs: {doc_sources} | "
-        f"Answer : {clean_answer[:50]}"
+        "[generate_answer_node] Finished. Retry_count: %s, Doc Srcs: %s, Answer: %s",
+        retry_count,
+        doc_sources,
+        clean_answer[:50],
+        extra={"user_id": user_id, "request_id": request_id},
     )
     return {"answer": [answer]}
 
@@ -120,7 +125,7 @@ async def grade_answer_node(state: GraphState):
     Args:
         state (GraphState): 現在のグラフの状態
     Returns:
-        dict: 評価結果と評価理由 {"grade": str, "feedback": str, "retry_count": int}
+        dict: 評価結果と評価理由 {"grade": str, "feedback": str}
     """
     user_id = state.get("user_id", "unknown_user")
     request_id = state.get("request_id", "unknown_request")
@@ -134,11 +139,11 @@ async def grade_answer_node(state: GraphState):
     )
     clean_feedback = result.feedback.replace("\n", " ") if result.feedback else "None"
     logger.info(
-        f"[grade_answer_node] Finished. | "
-        f"User: {user_id} | Request: {request_id} | "
-        f"Retry_count: {retry_count} | "
-        f"Grade: {result.grade} | "
-        f"Feedback: {clean_feedback[:50]}"
+        "[grade_answer_node] Finished. Retry_count: %s, Grade: %s, Feedback: %s",
+        retry_count,
+        result.grade,
+        clean_feedback[:50],
+        extra={"user_id": user_id, "request_id": request_id},
     )
     return {
         "grade": [result.grade],
@@ -168,10 +173,10 @@ async def analyze_failure_node(state: GraphState):
     )
     clean_analysis = analysis.replace("\n", " ") if analysis else "None"
     logger.warning(
-        f"[analyze_failure_node] Finished. | "
-        f"User: {user_id} | Request: {request_id} | "
-        f"Retry_count: {retry_count} | "
-        f"Analysis: {clean_analysis[:50]}"
+        "[analyze_failure_node] Finished. Retry_count: %s, Analysis: %s",
+        retry_count,
+        clean_analysis[:50],
+        extra={"user_id": user_id, "request_id": request_id},
     )
 
     return {"failure_analysis": analysis}

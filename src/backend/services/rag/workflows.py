@@ -28,20 +28,24 @@ def decide_to_finish(state: GraphState):
 
     if current_grade == "useful":
         logger.info(
-            f"[decide_to_finish] Finished. Grade is useful. | User: {user_id} | Request: {request_id}"
+            "[decide_to_finish] Finished. Grade is useful.",
+            extra={"user_id": user_id, "request_id": request_id},
         )
         return "finish"
 
-    if retry_count == 2:
+    if retry_count == 1:
         logger.info(
-            f"[decide_to_finish] Reached max retry. | User: {user_id} | Request: {request_id}"
+            "[decide_to_finish] Reached max retry.",
+            extra={"user_id": user_id, "request_id": request_id},
         )
         return "force_finish"
 
     logger.info(
-        f"[decide_to_finish] Retried. | User: {user_id} | Request: {request_id} | Grade: {current_grade} | Retry: {retry_count}"
+        "[decide_to_finish] Retried. Grade: %s, Retry_count: %s",
+        current_grade,
+        retry_count,
+        extra={"user_id": user_id, "request_id": request_id},
     )
-
     return "retry"
 
 
@@ -87,22 +91,32 @@ async def generate_stream(question: str, config: dict) -> AsyncGenerator[str, No
     user_id = configurable.get("user_id", "unknown_user")
     request_id = configurable.get("request_id", "unknown_request")
     logger.info(
-        f"[generate_stream] Started. | User: {user_id} | Request: {request_id} | Question: {question[:50]}"
+        "[generate_stream] Started. Question: %s",
+        question[:50],
+        extra={"user_id": user_id, "request_id": request_id},
     )
     try:
         async for output in compiled.astream(
-            {"question": question, "user_id": user_id, "request_id": request_id},
+            {
+                "question": question,
+                "user_id": user_id,
+                "request_id": request_id,
+                "retry_count": 0,
+            },
             config=config,
             stream_mode="updates",
         ):
             # Documentオブジェクトも辞書型に平滑化し、json.dumpsが扱える型に変換
             serializable_output = jsonable_encoder(output)
             yield f"data: {json.dumps(serializable_output, ensure_ascii=False)}\n\n"
+
         logger.info(
-            f"[generate_stream] Finished. | User: {user_id} | Request: {request_id}"
+            "[generate_stream] Finished.",
+            extra={"user_id": user_id, "request_id": request_id},
         )
     except Exception as e:
         logger.exception(
-            f"[generate_stream] User: {user_id} | Request: {request_id} | Error: {str(e)}"
+            "[generate_stream] Failed.",
+            extra={"user_id": user_id, "request_id": request_id},
         )
-        raise
+        raise e

@@ -34,7 +34,10 @@ async def ingest_document(
         )
 
     logger.info(
-        f"[ingest_documents] User: {x_user_id} | Request: {x_request_id} | Document: {doc_id} | Filename: {row.get('filename')}"
+        "[ingest_documents] Processing. Document_ID: %s, Filename: %s",
+        doc_id,
+        row.get("filename"),
+        extra={"user_id": x_user_id, "request_id": x_request_id},
     )
 
     background_tasks.add_task(
