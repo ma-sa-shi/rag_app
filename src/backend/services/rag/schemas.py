@@ -40,7 +40,7 @@ class GraphState(TypedDict):
         answer (list[str]): LLMが生成する回答。1列目に初回の回答、2列目以降に再試行の回答が入る。
         grade (list[str]): LLMが生成する回答の評価。1列目に初回の評価、2列目以降に再試行の評価が入る。
         feedback (list[str]): LLMが生成する回答の評価理由。1列目に初回の評価理由、2列目以降に再試行の評価理由が入る。
-        loop_step (int): ワークフローのループ回数。初回は0で、再試行するたびに1ずつ増加する。
+        retry_count (int): ワークフローのループ回数。初回は0で、再試行するたびに1ずつ増加する。
         failure_analysis (str): 回答生成に失敗した場合の分析結果
         user_id (str): ユーザーID
         request_id (str): リクエストID

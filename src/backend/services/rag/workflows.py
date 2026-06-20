@@ -1,6 +1,8 @@
 import json
 from typing import AsyncGenerator
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
+from fastapi import Request
 from fastapi.encoders import jsonable_encoder
 from services.rag.nodes import (
     generate_queries_node,
@@ -11,6 +13,7 @@ from services.rag.nodes import (
 )
 from services.rag.schemas import GraphState
 from api.endpoints.deps import get_logicFn_logger
+from services.rag.repository import save_chat_result
 
 
 def decide_to_finish(state: GraphState):
@@ -72,24 +75,29 @@ workflow.add_conditional_edges(
     },
 )
 workflow.add_edge("analyze_failure_node", END)
-
-compiled = workflow.compile()
+memory = MemorySaver()
+compiled = workflow.compile(checkpointer=memory)
 
 logger = get_logicFn_logger()
 
 
-async def generate_stream(question: str, config: dict) -> AsyncGenerator[str, None]:
+async def generate_stream(
+    question: str, config: dict, request: Request
+) -> AsyncGenerator[str, None]:
     """
     ワークフローを実行し、生成された回答をストリームで返す非同期ジェネレーター関数。
     Args:
         question (str): ユーザーからの質問
         config (dict): chroma, cohereのインスタンス
+        request (Request): FastAPIのリクエストオブジェクト
     Yields:
         str: GraphState
     """
     configurable = config.get("configurable", {})
     user_id = configurable.get("user_id", "unknown_user")
     request_id = configurable.get("request_id", "unknown_request")
+    if "thread_id" not in configurable:
+        config["configurable"]["thread_id"] = request_id
     logger.info(
         "[generate_stream] Started. Question: %s",
         question[:50],
@@ -109,6 +117,11 @@ async def generate_stream(question: str, config: dict) -> AsyncGenerator[str, No
             # Documentオブジェクトも辞書型に平滑化し、json.dumpsが扱える型に変換
             serializable_output = jsonable_encoder(output)
             yield f"data: {json.dumps(serializable_output, ensure_ascii=False)}\n\n"
+
+            graph_state_snapshot = await compiled.aget_state(config)
+        final_state = graph_state_snapshot.values
+        if final_state:
+            await save_chat_result(request_id, user_id, final_state, request)
 
         logger.info(
             "[generate_stream] Finished.",

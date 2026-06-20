@@ -45,7 +45,7 @@ async def chat_stream(
         }
 
         return StreamingResponse(
-            generate_stream(payload.question, config),
+            generate_stream(payload.question, config, request),
             media_type="text/event-stream",
         )
     except Exception as e:

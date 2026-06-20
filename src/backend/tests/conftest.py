@@ -1,4 +1,5 @@
 import shutil
+import uuid
 import tempfile
 import pytest_asyncio
 import aiomysql
@@ -87,4 +88,4 @@ async def test_user(db_connection):
 # ヘッダーの作成
 @pytest_asyncio.fixture(scope="function")
 async def auth_headers(test_user):
-    return {"X-User-Id": str(test_user), "X-Request-Id": "test_request"}
+    return {"X-User-Id": str(test_user), "X-Request-Id": str(uuid.uuid4())}
