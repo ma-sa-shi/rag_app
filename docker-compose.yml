@@ -18,6 +18,7 @@ services:
     command: >
       bash -c "poetry config virtualenvs.create true &&
                poetry install --no-interaction --no-ansi --no-root &&
+               poetry run python init_db.py &&
                poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:
@@ -53,10 +54,19 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./src/init.sql:/docker-entrypoint-initdb.d/init.sql
       - mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
       interval: 5s
       timeout: 2s
       retries: 5

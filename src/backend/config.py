@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     MYSQL_DATABASE: str
     MYSQL_USER: str
     MYSQL_PASSWORD: str
+    CHARSET: str = "utf8mb4"
     PERSIST_DIRECTORY: str
     COHERE_MODEL_NAME: str = "rerank-v3.5"
     COHERE_API_KEY: str
@@ -31,7 +32,7 @@ class Settings(BaseSettings):
             "user": self.MYSQL_USER,
             "password": self.MYSQL_PASSWORD,
             "db": self.MYSQL_DATABASE,
-            "charset": "utf8mb4",
+            "charset": self.CHARSET,
             "cursorclass": aiomysql.DictCursor,
             "autocommit": True,
         }

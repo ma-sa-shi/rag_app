@@ -61,7 +61,6 @@ async def test_chat_stream_success(client: AsyncClient, test_app, auth_headers):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_chat_stream_failure(client: AsyncClient, auth_headers):
-
     payload = {"question": "Poetryの利点は何ですか?"}
 
     response = await client.post(

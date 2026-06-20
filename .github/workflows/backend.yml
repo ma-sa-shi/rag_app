@@ -2,11 +2,11 @@ name: CI-backend
 
 on:
   pull_request:
-    branches: ['main']
+    branches: ["main"]
     types: [opened, synchronize, reopened]
     paths:
-      - 'src/backend/**'
-      - '.github/workflows/backend.yml'
+      - "src/backend/**"
+      - ".github/workflows/backend.yml"
 
 jobs:
   lint:
@@ -14,7 +14,6 @@ jobs:
     defaults:
       run:
         working-directory: src/backend
-
 
     steps:
       - name: Checkout code
@@ -28,9 +27,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
-          cache: 'poetry'
-          cache-dependency-path: 'src/backend/poetry.lock'
+          python-version: "3.13"
+          cache: "poetry"
+          cache-dependency-path: "src/backend/poetry.lock"
 
       - name: Install Dependencies
         run: poetry install --no-interaction --no-root
@@ -47,15 +46,22 @@ jobs:
     defaults:
       run:
         working-directory: src/backend
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+      MYSQL_USER: ${{ secrets.MYSQL_USER }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
 
     services:
       mysql:
         image: mysql:8.4
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
         ports:
           - 3306:3306
         options: >-
@@ -75,26 +81,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
-          cache: 'poetry'
-          cache-dependency-path: 'src/backend/poetry.lock'
+          python-version: "3.13"
+          cache: "poetry"
+          cache-dependency-path: "src/backend/poetry.lock"
 
       - name: Install Dependencies
         run: poetry install --no-interaction --no-root
 
       - name: Initialize Database
-        run: |
-          mysql -h 127.0.0.1 -u root -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" "${{ secrets.MYSQL_DATABASE }}" < ../init.sql
+        run: poetry run python init_db.py
 
       - name: Run Tests
         env:
           PYTHONPATH: .
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
-          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           PERSIST_DIRECTORY: ${{ secrets.PERSIST_DIRECTORY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
