@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, status, HTTPException, Depends, Header
+from fastapi import APIRouter, status, HTTPException, Depends, Header
 from aiomysql import Connection
 from langchain_chroma import Chroma
 from core.chroma import run_chroma_ingest
@@ -10,12 +10,10 @@ router = APIRouter()
 
 @router.post(
     "/{doc_id}/embeddings",
-    response_model=IngestResponse,
     status_code=status.HTTP_200_OK,
 )
 async def ingest_document(
     doc_id: int,
-    background_tasks: BackgroundTasks,
     x_user_id: int | None = Header(..., alias="X-User-Id"),
     x_request_id: str | None = Header(..., alias="X-Request-Id"),
     conn: Connection = Depends(get_db_connection),
@@ -25,7 +23,7 @@ async def ingest_document(
 
     async with conn.cursor() as cursor:
         query = "SELECT filename, extracted_text FROM docs WHERE doc_id = %s AND delete_flg = FALSE"
-        await cursor.execute(query, (doc_id,))
+        await cursor.execute(query, [doc_id])
         row = await cursor.fetchone()
 
     if not row:
@@ -39,17 +37,33 @@ async def ingest_document(
         row.get("filename"),
         extra={"user_id": x_user_id, "request_id": x_request_id},
     )
+    update_doc_status = "UPDATE docs SET status = %s WHERE doc_id = %s"
+    try:
+        await run_chroma_ingest(
+            chroma_client=chroma_client,
+            doc_id=doc_id,
+            filename=row.get("filename"),
+            extracted_text=row.get("extracted_text"),
+            user_id=x_user_id,
+            request_id=x_request_id,
+        )
+        async with conn.cursor() as cursor:
+            await cursor.execute(update_doc_status, ["ingested", doc_id])
 
-    background_tasks.add_task(
-        run_chroma_ingest,
-        chroma_client=chroma_client,
-        doc_id=doc_id,
-        filename=row.get("filename"),
-        extracted_text=row.get("extracted_text"),
-        user_id=x_user_id,
-        request_id=x_request_id,
-    )
-
-    return IngestResponse(
-        status="success", message=f"{row.get('filename')}の取り込みを開始しました"
-    )
+        return IngestResponse(
+            status=status.HTTP_200_OK,
+            message=f"{row.get('filename')}の取込みを完了しました",
+        )
+    except Exception as e:
+        async with conn.cursor() as cursor:
+            await cursor.execute(update_doc_status, ["failed", doc_id])
+            logger.error(
+                "[ingest_documents]Ingestion failed. Doc_ID: %s, Error: %s",
+                doc_id,
+                str(e),
+                extra={"user_id": x_user_id, "request_id": x_request_id},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{row.get('filename')}の取込みに失敗しました。",
+        )

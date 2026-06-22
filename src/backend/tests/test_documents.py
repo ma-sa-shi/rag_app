@@ -1,5 +1,5 @@
 import pytest
-import asyncio
+from fastapi import status
 from httpx import AsyncClient
 from aiomysql import Connection
 
@@ -15,17 +15,21 @@ async def test_ingest_document_success(
 
     async with db_connection.cursor() as cursor:
         await cursor.execute(
-            "INSERT INTO docs (doc_id, user_id, filename, extracted_text, delete_flg) VALUES (%s, %s, %s, %s, %s)",
-            (doc_id, test_user, filename, extracted_text, False),
+            "INSERT INTO docs (doc_id, user_id, filename, extracted_text, status, delete_flg) VALUES (%s, %s, %s, %s, %s, %s)",
+            [doc_id, test_user, filename, extracted_text, "processing", False],
         )
 
     response = await client.post(
         f"/api/documents/{doc_id}/embeddings", headers=auth_headers
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "success"
+    assert response.json()["status"] == status.HTTP_200_OK
 
-    await asyncio.sleep(3.0)
+    async with db_connection.cursor() as cursor:
+        await cursor.execute("SELECT status FROM docs WHERE doc_id = %s", [doc_id])
+        row = await cursor.fetchone()
+        assert row.get("status") == "ingested"
+
     chroma_client = test_app.state.chroma_client
     search_results = await chroma_client.asimilarity_search(
         "pytest.mark.asyncioでloop_scope='session'とすると、どうなりますか", k=1
@@ -59,7 +63,7 @@ async def test_ingest_document_deleted(
     async with db_connection.cursor() as cursor:
         await cursor.execute(
             "INSERT INTO docs (doc_id, user_id, filename, extracted_text, delete_flg) VALUES (%s, %s, %s, %s, %s)",
-            (doc_id, test_user, "deleted.txt", "削除済みテキスト", True),
+            [doc_id, test_user, "deleted.txt", "削除済みテキスト", True],
         )
 
     response = await client.post(
