@@ -9,7 +9,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 
-def run_chroma_ingest(
+async def run_chroma_ingest(
     chroma_client,
     doc_id: int,
     filename: str,
@@ -54,7 +54,7 @@ def run_chroma_ingest(
 
             ids.append(chunk_id)
 
-        chroma_client.add_documents(documents=documents, ids=ids)
+        await chroma_client.aadd_documents(documents=documents, ids=ids)
         logger.info(
             "[run_chroma_ingest] Finished. Document_ID: %s, Chunks_count: %s",
             doc_id,

@@ -69,7 +69,6 @@ export async function ingestFile(
       'UPDATE docs SET status = "processing" WHERE doc_id = ?',
       [docId]
     );
-    // ベクトル化処理に時間がかかることがあり、ファイルの状態を更新するため
     revalidatePath('/documents');
 
     const response = await fetch(
@@ -87,15 +86,10 @@ export async function ingestFile(
     if (!response.ok) {
       const errorData = await response
         .json()
-        .catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(
-        `FastAPI Ingestion Error: ${errorData.detail || response.statusText}`
-      );
+        .catch(() => ({ detail: 'ファイルの取込み処理に失敗しました' }));
+      revalidatePath('/documents');
+      return { error: errorData.detail };
     }
-
-    await pool.execute('UPDATE docs SET status = "ingested" WHERE doc_id = ?', [
-      docId,
-    ]);
     revalidatePath('/documents');
     return { success: true };
   } catch (error) {
@@ -103,19 +97,10 @@ export async function ingestFile(
       { err: error, context: { requestId, userId, docId } },
       'Ingestion failed'
     );
-    try {
-      await pool.execute('UPDATE docs SET status = "failed" WHERE doc_id = ?', [
-        docId,
-      ]);
-      revalidatePath('/documents');
-      // 2次エラーによりシステムがクラッシュするのを防ぐため2重にtry-catch
-    } catch (error) {
-      logger.error(
-        { err: error, context: { requestId, docId } },
-        'Failed to update document status to failed'
-      );
-    }
-
-    return { error: 'ファイルの取込み処理に失敗しました' };
+    await pool.execute('UPDATE docs SET status = "failed" WHERE doc_id = ?', [
+      docId,
+    ]);
+    revalidatePath('/documents');
   }
+  return { error: 'ファイルの取込み処理に失敗しました' };
 }
