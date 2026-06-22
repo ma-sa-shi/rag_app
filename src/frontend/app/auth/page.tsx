@@ -3,8 +3,8 @@ import AuthConsole from '@/components/features/auth/AuthConsole';
 
 export default function AuthPage() {
   return (
-    <main>
+    <div className="w-full flex items-center justify-center animate-fade-in">
       <AuthConsole />
-    </main>
+    </div>
   );
 }

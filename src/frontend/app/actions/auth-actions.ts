@@ -14,6 +14,12 @@ import { pool } from '@/lib/db';
 import { JWT_SECRET } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
+export async function signOut() {
+  const cookieStore = await cookies();
+  cookieStore.delete('session_token');
+  redirect('/auth');
+}
+
 /**
  * ユーザーのログイン認証を行い、成功時にJWTを発行するServerAction
  */
