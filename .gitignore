@@ -5,5 +5,3 @@
 /src/frontend/public/uploads/*
 !/src/frontend/public/uploads/.gitkeep
 /src/frontend/node_modules/
-/src/backend/log/*
-!/src/backend/log/.gitkeep

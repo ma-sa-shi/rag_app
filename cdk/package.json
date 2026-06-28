@@ -1,0 +1,29 @@
+{
+  "name": "cdk",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "diff:dev": "cdk diff -c stage=dev --all",
+    "deploy:dev": "cdk deploy -c stage=dev --all",
+    "destroy:dev": "cdk destroy -c stage=dev --all",
+    "diff:prod": "cdk diff -c stage=prod --all",
+    "deploy:prod": "cdk deploy -c stage=prod --all",
+    "destroy:prod": "cdk destroy -c stage=prod --all"
+  },
+  "devDependencies": {
+    "@types/jest": "^30",
+    "@types/node": "^24.13.2",
+    "aws-cdk": "2.1126.0",
+    "jest": "^30",
+    "ts-jest": "^29",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.257.0",
+    "constructs": "^10.5.0"
+  }
+}
