@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./src/backend/Dockerfile
+      target: local
     env_file:
       - .env
     # FastAPIの8000番ポートをホストOSの8000番ポートにマッピング
@@ -16,8 +17,7 @@ services:
         condition: service_healthy
     # --reloadはマウントが条件なのでdocker-compose.ymlで実行
     command: >
-      bash -c "poetry config virtualenvs.create true &&
-               poetry install --no-interaction --no-ansi --no-root &&
+      bash -c "poetry install --no-interaction --no-ansi --no-root &&
                poetry run python init_db.py &&
                poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
@@ -25,6 +25,7 @@ services:
     build:
       context: .
       dockerfile: ./src/frontend/Dockerfile
+      target: local
     env_file:
       - .env
     # Next.jsの3000番ポートをホストOSの3000番ポートにマッピング
@@ -42,8 +43,7 @@ services:
 
   rdb:
     image: mysql:8.4
-    # 落ちたときに自動で再起動
-    restart: always
+    restart: unless-stopped
     command: --default-time-zone='+09:00'
     environment:
       TZ: Asia/Tokyo
@@ -56,17 +56,7 @@ services:
     volumes:
       - mysql:/var/lib/mysql
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-p${MYSQL_ROOT_PASSWORD}",
-        ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 2s
       retries: 5

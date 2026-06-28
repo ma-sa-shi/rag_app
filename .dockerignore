@@ -1,0 +1,13 @@
+# CDKの一時出力先
+cdk/cdk.out/
+
+# Node.js や Python の不要な依存関係・キャッシュ
+**/node_modules/
+**/__pycache__/
+**/.pytest_cache/
+
+# フロントエンドのビルドキャッシュ
+src/frontend/.next/
+
+# その他不要ファイル
+.git/

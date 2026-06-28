@@ -1,22 +1,38 @@
 import os
+import sys
 import time
 import pymysql
 from pymysql.constants import CLIENT
 
 MYSQL_HOST = os.environ.get("MYSQL_HOST")
-MYSQL_PORT = int(os.environ.get("MYSQL_PORT"))
+MYSQL_PORT = os.environ.get("MYSQL_PORT")
 MYSQL_ROOT_PASSWORD = os.environ.get("MYSQL_ROOT_PASSWORD")
+MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD")
 
-if not MYSQL_ROOT_PASSWORD or not MYSQL_HOST or not MYSQL_PORT:
-    print("Error: One or more required env vars are missing.")
-    exit(1)
+db_env = {
+    "MYSQL_HOST": MYSQL_HOST,
+    "MYSQL_PORT": MYSQL_PORT,
+    "MYSQL_ROOT_PASSWORD": MYSQL_ROOT_PASSWORD,
+    "MYSQL_PASSWORD": MYSQL_PASSWORD,
+}
+missing_vars = [k for k, v in db_env.items() if not v]
 
-SETUP_SQL = """
+if missing_vars:
+    print(
+        f"Error: The following required env vars are missing: {', '.join(missing_vars)}"
+    )
+    sys.exit(1)
+
+MYSQL_PORT = int(MYSQL_PORT)
+
+SETUP_SQL = f"""
 CREATE DATABASE IF NOT EXISTS db CHARACTER SET utf8mb4 COLLATE utf8mb4_ja_0900_as_cs_ks;
 CREATE DATABASE IF NOT EXISTS db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_ja_0900_as_cs_ks;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON db.* TO 'user'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.* TO 'user'@'%';
+CREATE USER IF NOT EXISTS 'user'@'%' IDENTIFIED BY '{MYSQL_PASSWORD}';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON db.* TO 'user'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON db_test.* TO 'user'@'%';
 FLUSH PRIVILEGES;
 """
 CREATE_TABLES_SQL = """
@@ -99,7 +115,7 @@ def main():
 
     if not connection:
         print("Error: Couldn't connect to MySQL server.")
-        exit(1)
+        sys.exit(1)
 
     print("connected. Running init SQL")
 
@@ -116,7 +132,7 @@ def main():
         print("Migration successfully completed.")
     except pymysql.MySQLError as e:
         print(f"Migration failed with error: {e}")
-        exit(1)
+        sys.exit(1)
     finally:
         connection.close()
 
