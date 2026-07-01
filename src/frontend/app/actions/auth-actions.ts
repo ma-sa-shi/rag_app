@@ -10,8 +10,8 @@ import {
   SignupActionResponse,
   JWTPayloadData,
 } from '@/types/auth';
-import { pool } from '@/lib/db';
-import { JWT_SECRET } from '@/lib/env';
+import { getPool } from '@/lib/db';
+import { getJwtSecret } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
 export async function signOut() {
@@ -38,6 +38,7 @@ export async function signinAction(
   }
 
   try {
+    const pool = getPool();
     const [rows] = await pool.execute<UserRow[]>(
       'SELECT user_id, username, hashed_password, is_admin FROM users WHERE username = ? AND delete_flg = FALSE LIMIT 1',
       [username]
@@ -67,6 +68,7 @@ export async function signinAction(
       // !!でtrueかfalseに型変換
       isAdmin: !!user.is_admin,
     };
+    const JWT_SECRET = getJwtSecret();
     const token = await new jose.SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -111,6 +113,7 @@ export async function signupAction(
   }
 
   try {
+    const pool = getPool();
     const [existingUsers] = await pool.execute<UserRow[]>(
       'SELECT user_id FROM users WHERE username = ? AND delete_flg = FALSE LIMIT 1',
       [username]

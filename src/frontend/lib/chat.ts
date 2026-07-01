@@ -1,5 +1,5 @@
 import { ChatHistoryItem } from '@/types/chatHistory';
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 
 export async function getRecentChatList(): Promise<ChatHistoryItem[]> {
   try {
@@ -14,7 +14,7 @@ export async function getRecentChatList(): Promise<ChatHistoryItem[]> {
       ORDER BY ch.created_at DESC
       LIMIT 100;
     `;
-
+    const pool = getPool();
     const [rows] = await pool.execute(query);
 
     return rows as ChatHistoryItem[];
