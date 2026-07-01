@@ -25,3 +25,11 @@ export type IngestActionResponse = {
   success?: boolean;
   error?: string;
 };
+
+/**
+ * ファイル閲覧URL取得処理 (getFileViewUrl) のレスポンス
+ */
+export type FileViewUrlActionResponse = {
+  url?: string;
+  error?: string;
+};
