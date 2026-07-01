@@ -1,5 +1,5 @@
 import { DocFile } from '@/types/file';
-import { pool } from '@/lib/db';
+import { getPool } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -13,7 +13,7 @@ export async function getFiles(): Promise<DocFile[]> {
       WHERE delete_flg = FALSE
       ORDER BY created_at DESC
     `;
-
+    const pool = getPool();
     const [rows] = await pool.execute(query);
     return rows as DocFile[];
   } catch (error) {
