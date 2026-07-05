@@ -6,11 +6,14 @@ export class IamStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const provider = iam.OpenIdConnectProvider.fromOpenIdConnectProviderArn(
-      this,
-      'GitHubProvider',
-      `arn:aws:iam::${this.account}:oidc-provider/token.actions.githubusercontent.com`
-    );
+    // GitHub Actions用のOIDCプロバイダをCDKで新規作成・管理する。
+    // AWSアカウントに同一URLのプロバイダは1つしか作成できないため、
+    // 他のスタック/手動作成で既に存在する場合はここを
+    // fromOpenIdConnectProviderArn に戻すか、先に既存分を削除すること。
+    const provider = new iam.OpenIdConnectProvider(this, 'GitHubProvider', {
+      url: 'https://token.actions.githubusercontent.com',
+      clientIds: ['sts.amazonaws.com'],
+    });
 
     const githubActionsPrincipal = new iam.WebIdentityPrincipal(
       provider.openIdConnectProviderArn,
