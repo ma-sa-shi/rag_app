@@ -4,7 +4,6 @@
   "service": "backend",
   "workspaceFolder": "/app",
   "remoteUser": "vscode",
-  "shutdownAction": "stopCompose",
 
   "customizations": {
     "vscode": {
