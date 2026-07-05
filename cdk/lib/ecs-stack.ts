@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -10,6 +9,8 @@ import * as rds from 'aws-cdk-lib/aws-rds';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as ecr from 'aws-cdk-lib/aws-ecr';
+import * as appscaling from 'aws-cdk-lib/aws-applicationautoscaling';
 
 interface EcsStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -19,7 +20,6 @@ interface EcsStackProps extends cdk.StackProps {
   dbSecurityGroup: ec2.SecurityGroup;
   mysqlRootPassword: secretsmanager.ISecret;
   bucket: s3.IBucket;
-  isProd: boolean;
 }
 
 export class EcsStack extends cdk.Stack {
@@ -28,6 +28,36 @@ export class EcsStack extends cdk.Stack {
 
     const appName = 'rag-app';
     const dbName = 'db';
+
+    // ダミーイメージを使う。実イメージはGitHub ActionsでECRにpushされる
+    const dummyImage = ecs.ContainerImage.fromRegistry(
+      'public.ecr.aws/nginx/nginx:1.27-alpine'
+    );
+
+    const backendRepo = new ecr.Repository(this, 'BackendRepo', {
+      repositoryName: `${appName}-backend`,
+      // 本番運用フェーズに入ったらRETAINに戻すこと
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      // pushされていないイメージを30日で自動削除
+      lifecycleRules: [
+        {
+          maxImageAge: cdk.Duration.days(30),
+          tagStatus: ecr.TagStatus.UNTAGGED,
+        },
+      ],
+    });
+
+    const frontendRepo = new ecr.Repository(this, 'FrontendRepo', {
+      repositoryName: `${appName}-frontend`,
+      // 本番運用フェーズに入ったらRETAINに戻すこと
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      lifecycleRules: [
+        {
+          maxImageAge: cdk.Duration.days(30),
+          tagStatus: ecr.TagStatus.UNTAGGED,
+        },
+      ],
+    });
 
     // SSM
     const mysqlRootPassword = ecs.Secret.fromSecretsManager(
@@ -78,6 +108,7 @@ export class EcsStack extends cdk.Stack {
     // クラスター定義
     const cluster = new ecs.Cluster(this, 'Cluster', {
       vpc: props.vpc,
+      clusterName: `${appName}-cluster`,
     });
 
     cluster.addDefaultCloudMapNamespace({
@@ -87,9 +118,7 @@ export class EcsStack extends cdk.Stack {
 
     const logGroup = new logs.LogGroup(this, 'LogGroup', {
       retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: props.isProd
-        ? cdk.RemovalPolicy.RETAIN
-        : cdk.RemovalPolicy.DESTROY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // IAMロール
@@ -152,6 +181,7 @@ export class EcsStack extends cdk.Stack {
       this,
       'FastapiTaskDef',
       {
+        family: `${appName}-fastapi`,
         cpu: 256,
         memoryLimitMiB: 512,
         taskRole: fastapiTaskRole,
@@ -171,18 +201,10 @@ export class EcsStack extends cdk.Stack {
     });
 
     const fastapiContainer = fastapiTaskDef.addContainer('fastapi', {
-      image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../../'), {
-        file: 'src/backend/Dockerfile',
-        target: 'cloud',
-      }),
+      image: dummyImage,
       essential: true,
-      command: [
-        'sh',
-        '-c',
-        'python init_db.py && uvicorn main:app --host 0.0.0.0 --port 8000',
-      ],
       environment: {
-        ENV: props.isProd ? 'prod' : 'dev',
+        ENV: 'production',
         PYTHONUNBUFFERED: '1',
         MYSQL_HOST: props.dbInstance.dbInstanceEndpointAddress,
         MYSQL_PORT: props.dbInstance.dbInstanceEndpointPort,
@@ -214,7 +236,9 @@ export class EcsStack extends cdk.Stack {
     const fastapiService = new ecs.FargateService(this, 'FastapiService', {
       cluster,
       taskDefinition: fastapiTaskDef,
-      desiredCount: 1,
+      serviceName: `${appName}-fastapi`,
+      // desiredCountは指定しない。指定するとcdk deployのたびにCloudFormationが
+      // テンプレート上の値へ強制的に戻してしまい、スケジュールされたAutoScalingの結果を巻き戻してしまう
       securityGroups: [fastapiSg],
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
@@ -229,19 +253,22 @@ export class EcsStack extends cdk.Stack {
         ],
       },
     });
+    // テンプレートからもDesiredCountプロパティを削除し、
+    // CloudFormationがこのプロパティを一切管理しないようにする（AutoScalingに完全委任）
+    (
+      fastapiService.node.defaultChild as ecs.CfnService
+    ).addPropertyDeletionOverride('DesiredCount');
 
     // Next.jsタスク定義
     const nextjsTaskDef = new ecs.FargateTaskDefinition(this, 'NextjsTaskDef', {
+      family: `${appName}-nextjs`,
       cpu: 256,
       memoryLimitMiB: 512,
       taskRole: nextjsTaskRole,
     });
 
     const nextjsContainer = nextjsTaskDef.addContainer('nextjs', {
-      image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../../'), {
-        file: 'src/frontend/Dockerfile',
-        target: 'cloud',
-      }),
+      image: dummyImage,
       essential: true,
       environment: {
         APP_ENV: 'cloud',
@@ -279,7 +306,8 @@ export class EcsStack extends cdk.Stack {
     const nextjsService = new ecs.FargateService(this, 'NextjsService', {
       cluster,
       taskDefinition: nextjsTaskDef,
-      desiredCount: 1,
+      serviceName: `${appName}-nextjs`,
+      // desiredCountは指定しない
       securityGroups: [nextjsSg],
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
@@ -290,7 +318,44 @@ export class EcsStack extends cdk.Stack {
       // Service Connect有効化のため
       serviceConnectConfiguration: {},
     });
+    (
+      nextjsService.node.defaultChild as ecs.CfnService
+    ).addPropertyDeletionOverride('DesiredCount');
 
     nextjsService.node.addDependency(fastapiService);
+
+    // 00:00(UTC)起動, 10:00(UTC)停止
+    const startSchedule = appscaling.Schedule.cron({ hour: '0', minute: '0' });
+    const stopSchedule = appscaling.Schedule.cron({ hour: '10', minute: '0' });
+
+    const fastapiScaling = fastapiService.autoScaleTaskCount({
+      minCapacity: 0,
+      maxCapacity: 1,
+    });
+    fastapiScaling.scaleOnSchedule('FastapiScaleUp', {
+      schedule: startSchedule,
+      minCapacity: 1,
+      maxCapacity: 1,
+    });
+    fastapiScaling.scaleOnSchedule('FastapiScaleDown', {
+      schedule: stopSchedule,
+      minCapacity: 0,
+      maxCapacity: 0,
+    });
+
+    const nextjsScaling = nextjsService.autoScaleTaskCount({
+      minCapacity: 0,
+      maxCapacity: 1,
+    });
+    nextjsScaling.scaleOnSchedule('NextjsScaleUp', {
+      schedule: startSchedule,
+      minCapacity: 1,
+      maxCapacity: 1,
+    });
+    nextjsScaling.scaleOnSchedule('NextjsScaleDown', {
+      schedule: stopSchedule,
+      minCapacity: 0,
+      maxCapacity: 0,
+    });
   }
 }
