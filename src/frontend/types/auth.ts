@@ -3,7 +3,6 @@ import { RowDataPacket } from 'mysql2';
 /**
  * ユーザ登録後にモードを切り替える関数の型
  */
-
 export type SignUpFormProps = {
   onSuccess: () => void;
 };

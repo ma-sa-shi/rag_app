@@ -1,21 +1,22 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "ESNext", // 出力するJSの世代を最新
+    "lib": ["dom", "dom.iterable", "esnext"], // ブラウザ環境の型定義と最新のJSの型定義
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
+    "noEmit": true, // tsのコンパイラは.ts, tsxをjsにコンパイルせずNext.js(SWC)がコンパイル
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "esnext", // 最新のES Modules
+    "moduleResolution": "bundler", // モジュールの検索方法をバンドラーに
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
+    "jsx": "react-jsx", // JSXトランスパイル方式
+    "incremental": true, // 増分コンパイル
+    "types": ["node"],
     "plugins": [
       {
-        "name": "next"
+        "name": "next" // Next.js用のtsプラグイン
       }
     ],
     "paths": {

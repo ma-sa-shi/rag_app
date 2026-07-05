@@ -1,7 +1,6 @@
 /**
  * DBから取得したチャット履歴の型定義
  */
-
 export type ChatHistoryItem = {
   chat_id: number;
   request_id: string;
@@ -17,7 +16,6 @@ export type ChatHistoryItem = {
 /**
  * フィルタリングの型定義
  */
-
 export type FilterState = {
   question: string;
   answer: string;
@@ -29,7 +27,6 @@ export type FilterState = {
 /**
  * ChatHistoryのpropsの型定義
  */
-
 export type ChatHistoryProps = {
   initialHistory: ChatHistoryItem[];
 };
