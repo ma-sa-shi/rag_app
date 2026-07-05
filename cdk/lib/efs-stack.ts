@@ -18,6 +18,7 @@ export class EfsStack extends cdk.Stack {
       vpc: props.vpc,
       encrypted: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      // 実際にユーザーのデータが入る運用フェーズに入ったら、RETAINに戻すこと。
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 

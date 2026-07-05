@@ -1,0 +1,52 @@
+name: ECS Cleanup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ECS-cleanup
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  CLUSTER_NAME: rag-app-cluster
+  FASTAPI_SERVICE: rag-app-fastapi
+  NEXTJS_SERVICE: rag-app-nextjs
+
+jobs:
+  scale-down:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-app-deploy-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Scale fastapi and nextjs down to 0
+        run: |
+          set -eu
+          echo "Reset DesiredCount to 0: $CLUSTER_NAME"
+
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$FASTAPI_SERVICE" \
+            --desired-count 0
+
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$NEXTJS_SERVICE" \
+            --desired-count 0
+
+      - name: Wait until both services are stable
+        run: |
+          set -eu
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER_NAME" \
+            --services "$FASTAPI_SERVICE" "$NEXTJS_SERVICE"
+
+          echo "🌙Cleanup complete. Both FastAPI and Next.js stopped."

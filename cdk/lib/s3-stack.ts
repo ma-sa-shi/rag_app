@@ -2,11 +2,9 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as iam from 'aws-cdk-lib/aws-iam';
 
 interface S3StackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
-  isProd: boolean;
 }
 
 export class S3Stack extends cdk.Stack {
@@ -19,7 +17,7 @@ export class S3Stack extends cdk.Stack {
     const appName = 'rag-app';
 
     this.bucket = new s3.Bucket(this, 'Bucket', {
-      bucketName: `${appName}-${this.account}-${props.isProd ? 'prod' : 'dev'}`,
+      bucketName: `${appName}-${this.account}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       publicReadAccess: false,
       // SSE-S3で暗号化
@@ -44,11 +42,10 @@ export class S3Stack extends cdk.Stack {
           abortIncompleteMultipartUploadAfter: cdk.Duration.days(3),
         },
       ],
-
-      removalPolicy: props.isProd
-        ? cdk.RemovalPolicy.RETAIN
-        : cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: !props.isProd,
+      // 実際にユーザーのデータが入る運用フェーズに入ったら、
+      // removalPolicy: RETAIN / autoDeleteObjects: false に戻すこと。
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
     });
     // ECSからS3へのアクセスがインターネットを経由しない
     this.vpcEndpoint = new ec2.GatewayVpcEndpoint(this, 'S3VpcEndpoint', {
