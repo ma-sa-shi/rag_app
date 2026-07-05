@@ -5,6 +5,7 @@ import { EfsStack } from "../lib/efs-stack";
 import { RdsStack } from "../lib/rds-stack";
 import { S3Stack } from "../lib/s3-stack";
 import { EcsStack } from "../lib/ecs-stack";
+import { IamStack } from "../lib/iam-stack";
 
 const app = new cdk.App();
 
@@ -14,6 +15,10 @@ const isProd = stage === "prod";
 
 const vpcStack = new VpcStack(app, "RagVpcStack", {
   description: "Network infrastructure for RAG Application",
+});
+
+const iamStack = new IamStack(app, "IamStack", {
+  description: "IAM for RAG Application",
 });
 
 const efsStack = new EfsStack(app, "RagEfsStack", {
