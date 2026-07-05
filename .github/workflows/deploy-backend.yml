@@ -1,0 +1,94 @@
+name: App Deploy (Backend)
+
+# 手動のみ
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+# 同時デプロイを避ける
+concurrency:
+  group: app-deploy-backend
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  CLUSTER_NAME: rag-app-cluster
+  SERVICE_NAME: rag-app-fastapi
+  TASK_FAMILY: rag-app-fastapi
+  CONTAINER_NAME: fastapi
+  ECR_REPOSITORY: rag-app-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-app-deploy-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        id: build
+        working-directory: backend
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          set -eu
+          IMAGE_URI="$REGISTRY/$ECR_REPOSITORY"
+          docker build -t "$IMAGE_URI:${{ github.sha }}" -t "$IMAGE_URI:latest" .
+          docker push "$IMAGE_URI:${{ github.sha }}"
+          docker push "$IMAGE_URI:latest"
+          echo "image=$IMAGE_URI:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Download active task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "${{ env.TASK_FAMILY }}" \
+            --query 'taskDefinition' > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build.outputs.image }}
+          command: '["sh", "-c", "poetry run python init_db.py && poetry run uvicorn main:app --host 0.0.0.0 --port 8000"]'
+
+      - name: Register Amazon ECS task definition
+        id: register-task-def
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+
+      - name: Update ECS service and Scale Up for Night Verification
+        env:
+          TASK_DEF_ARN: ${{ steps.register-task-def.outputs.task-definition-arn }}
+        run: |
+          set -eu
+
+          echo "Apply the new task definition and update the service with DesiredCount to 1"
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$SERVICE_NAME" \
+            --task-definition "$TASK_DEF_ARN" \
+            --desired-count 1 \
+            --force-new-deployment
+
+          echo "Start the container and wait for it to become stable"
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER_NAME" \
+            --services "$SERVICE_NAME"
+
+          echo "🚀Deployment complete. Check it in browser."
