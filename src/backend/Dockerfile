@@ -1,3 +1,5 @@
+# 一般ユーザーが使える仮想環境/app/.venv/...にパッケージをインストールする
+
 FROM python:3.13-slim AS base
 
 WORKDIR /app
@@ -53,6 +55,8 @@ RUN chown -R $USERNAME:$USER_GID $POETRY_HOME
 
 # 定義ファイルをコピーして所有者を変更
 COPY --chown=$USERNAME:$USER_GID src/backend/pyproject.toml src/backend/poetry.lock ./
+
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 
 # 本番環境向けインストール
 RUN poetry install --only main --no-interaction --no-ansi --no-root
