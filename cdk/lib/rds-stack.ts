@@ -6,7 +6,6 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 
 interface RdsStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
-  isProd: boolean;
 }
 
 export class RdsStack extends cdk.Stack {
@@ -36,7 +35,7 @@ export class RdsStack extends cdk.Stack {
       },
     });
 
-    // RDS MySQLインスタンス（t4g.micro + Single-AZ + gp2）
+    // 削除保護OFF・1日バックアップ・RETAIN
     this.dbInstance = new rds.DatabaseInstance(this, 'MysqlInstance', {
       engine: rds.DatabaseInstanceEngine.mysql({
         version: rds.MysqlEngineVersion.VER_8_4_9,
@@ -59,14 +58,12 @@ export class RdsStack extends cdk.Stack {
       // ストレージの自動拡張を無効化
       maxAllocatedStorage: 20,
       storageEncrypted: true,
-      backupRetention: props.isProd
-        ? cdk.Duration.days(7)
-        : cdk.Duration.days(1),
-      deletionProtection: props.isProd,
-      removalPolicy: props.isProd
-        ? cdk.RemovalPolicy.RETAIN
-        : cdk.RemovalPolicy.DESTROY,
-      deleteAutomatedBackups: !props.isProd,
+      backupRetention: cdk.Duration.days(1),
+      // 実際にユーザーのデータが入る運用フェーズに入ったら、
+      // removalPolicy: RETAIN / deletionProtection: true に戻すこと。
+      deletionProtection: false,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      deleteAutomatedBackups: false,
       // 監視用の有料オプションをオフ
       enablePerformanceInsights: false,
       // 拡張モニタリングをオフ

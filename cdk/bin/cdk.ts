@@ -9,10 +9,6 @@ import { IamStack } from "../lib/iam-stack";
 
 const app = new cdk.App();
 
-// cdk deploy -c stage=dev --all で渡す
-const stage = app.node.tryGetContext("stage");
-const isProd = stage === "prod";
-
 const vpcStack = new VpcStack(app, "RagVpcStack", {
   description: "Network infrastructure for RAG Application",
 });
@@ -28,13 +24,11 @@ const efsStack = new EfsStack(app, "RagEfsStack", {
 
 const rdsStack = new RdsStack(app, "RagRdsStack", {
   vpc: vpcStack.vpc,
-  isProd: isProd,
   description: "RDS MySQL instance for RAG Application",
 });
 
 const s3Stack = new S3Stack(app, "RagS3Stack", {
   vpc: vpcStack.vpc,
-  isProd: isProd,
   description: "S3 bucket for RAG Application",
 });
 
@@ -46,6 +40,5 @@ new EcsStack(app, "RagEcsStack", {
   dbSecurityGroup: rdsStack.dbSecurityGroup,
   mysqlRootPassword: rdsStack.mysqlRootPassword,
   bucket: s3Stack.bucket,
-  isProd: isProd,
   description: "ECS Fargate services for RAG Application",
 });
