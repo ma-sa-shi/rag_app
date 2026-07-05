@@ -13,7 +13,7 @@
         "astral-sh.ruff"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/app/.venv/bin/python", // Poetryの環境を固定（パスは環境に合わせて調整してください）
+        "python.defaultInterpreterPath": "/app/.venv/bin/python",
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "astral-sh.ruff",
