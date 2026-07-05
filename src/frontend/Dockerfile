@@ -1,22 +1,19 @@
-FROM node:24-slim
-
-# 以降のコマンドを実行するディレクトリを/appに設定
+FROM node:24-slim AS base
 WORKDIR /app
-
-USER root
-# ビルド時間を短縮するため、package.jsonとpackage-lock.jsonを先にコピー
 COPY --chown=node:node ./src/frontend/package*.json ./
-
-RUN chown -R node:node /app
-
-# Node公式イメージにあるnodeユーザーにrootから切り替える
+RUN chown node:node /app
 USER node
 
-# 依存関係をインストール
+FROM base AS local
+ENV APPENV=local
 RUN npm install
-
-# 3000番ポートの使用を明示
 EXPOSE 3000
-
-# サーバーの起動コマンド
 CMD ["npm", "run", "dev"]
+
+FROM base AS cloud
+ENV APPENV=cloud
+RUN npm ci
+COPY --chown=node:node ./src/frontend/ /app/
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "run", "start"]
