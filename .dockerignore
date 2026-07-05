@@ -1,13 +1,38 @@
-# CDKの一時出力先
-cdk/cdk.out/
+# VCS
+.git/
+**/.git/
 
-# Node.js や Python の不要な依存関係・キャッシュ
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Node.js
 **/node_modules/
+**/.next/
+**/.turbo/
+**/.eslintcache
+**/tsconfig.tsbuildinfo
+
+# Python
 **/__pycache__/
 **/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.venv/
 
-# フロントエンドのビルドキャッシュ
-src/frontend/.next/
+# Infrastructure/generated
+cdk/cdk.out/
+cdk/node_modules/
+terraform/.terraform/
 
-# その他不要ファイル
-.git/
+# Local/editor artifacts
+**/.vscode/
+diff.txt
+**/test.txt
+
+# Docker metadata not needed in image context
+Dockerfile
+.dockerignore
+**/Dockerfile
+**/.dockerignore
