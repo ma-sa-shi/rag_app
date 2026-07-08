@@ -5,13 +5,13 @@ RUN chown node:node /app
 USER node
 
 FROM base AS local
-ENV APPENV=local
+ENV APP_ENV=local
 RUN npm install
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 FROM base AS cloud
-ENV APPENV=cloud
+ENV APP_ENV=cloud
 RUN npm ci
 COPY --chown=node:node ./src/frontend/ /app/
 RUN npm run build

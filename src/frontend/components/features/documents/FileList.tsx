@@ -1,9 +1,8 @@
 'use client';
 import { useTransition, useState } from 'react';
-import { ingestFile } from '@/app/actions/file-actions';
+import { getFileViewUrl, ingestFile } from '@/app/actions/file-actions';
 import { DocFile } from '@/types/file';
 import { logger } from '@/lib/logger';
-import { getFileViewUrl } from '@/lib/file';
 /**
  * アップロード済みファイルの一覧を表示し、取込みボタンを表示するclient component
  */
