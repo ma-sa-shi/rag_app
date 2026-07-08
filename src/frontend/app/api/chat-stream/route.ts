@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 
 import { ChatStreamRequest } from '@/types/rag';
 import { getUserIdFromToken } from '@/lib/auth';
-import { FASTAPI_URL } from '@/lib/env';
+import { getFastApiUrl } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
 /**
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const { question }: ChatStreamRequest = await request.json();
 
   try {
-    const response = await fetch(`${FASTAPI_URL}/chats/stream`, {
+    const response = await fetch(`${getFastApiUrl()}/chats/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

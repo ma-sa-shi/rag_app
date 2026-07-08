@@ -1,14 +1,6 @@
 // SSMで渡す環境変数は関数により遅延評価必須
-// 直接注入される環境変数はトップで取得
-import { S3Client } from '@aws-sdk/client-s3/dist-types/S3Client';
+import { S3Client } from '@aws-sdk/client-s3';
 import 'server-only';
-
-const fastapiUrl = process.env.FASTAPI_URL;
-if (!fastapiUrl) {
-  throw new Error('Environment variable FASTAPI_URL is not set.');
-}
-// 確実にstring型になった値を定数としてエクスポート
-export const FASTAPI_URL = fastapiUrl;
 
 export const s3 = new S3Client({
   region: process.env.AWS_REGION ?? 'ap-northeast-1',
@@ -22,6 +14,14 @@ export function getAppEnv(): AppEnv {
     return 'cloud';
   }
   return 'local';
+}
+
+export function getFastApiUrl(): string {
+  const fastapiUrl = process.env.FASTAPI_URL;
+  if (!fastapiUrl) {
+    throw new Error('Environment variable FASTAPI_URL is not set.');
+  }
+  return fastapiUrl;
 }
 
 // バイナリ化して返す
