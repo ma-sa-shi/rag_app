@@ -1,10 +1,25 @@
 {
   "name": "Backend Development",
-  "dockerComposeFile": ["../../../docker-compose.yml"],
+  "dockerComposeFile": [
+    "../../../docker-compose.yml",
+    "docker-compose.extend.yml"
+  ],
   "service": "backend",
-  "workspaceFolder": "/app",
+  "workspaceFolder": "/workspaces/ai_app",
   "remoteUser": "vscode",
-
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "command -v claude >/dev/null || npm install -g @anthropic-ai/claude-code",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -13,7 +28,7 @@
         "astral-sh.ruff"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/app/.venv/bin/python",
+        "python.defaultInterpreterPath": "/workspaces/ai_app/src/backend/.venv/bin/python",
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "astral-sh.ruff",
