@@ -5,6 +5,9 @@ RUN chown node:node /app
 USER node
 
 FROM base AS local
+USER root
+RUN npm install -g @anthropic-ai/claude-code
+USER node
 ENV APP_ENV=local
 RUN npm install
 EXPOSE 3000

@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
 
 ENV POETRY_HOME="/opt/poetry"
 
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 ENV PATH="$POETRY_HOME/bin:$PATH"
@@ -55,8 +57,6 @@ RUN chown -R $USERNAME:$USER_GID $POETRY_HOME
 
 # 定義ファイルをコピーして所有者を変更
 COPY --chown=$USERNAME:$USER_GID src/backend/pyproject.toml src/backend/poetry.lock ./
-
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 
 # 本番環境向けインストール
 RUN poetry install --only main --no-interaction --no-ansi --no-root
