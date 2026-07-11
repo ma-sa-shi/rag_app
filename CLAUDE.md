@@ -19,7 +19,7 @@ See `cdk/README.md` for CDK architecture and `.claude/skills/cdk-deploy/` for de
 **Chat (SSE streaming)**:
 ```
 Browser → Next.js Route Handler (/api/chat-stream)
-  → validates JWT cookie → adds X-User-Id / X-Request-ID headers
+  → validates JWT cookie → adds X-User-Id / X-Request-Id headers
   → FastAPI POST /api/chats/stream
   → LangGraph workflow (StateGraph) streams updates
   → Browser parses SSE events and updates UI in real-time
@@ -77,7 +77,7 @@ Six CDK stacks in `cdk/lib/`. Dependency-driven order: `VpcStack` first (everyth
 
 - **ECS Fargate**: backend (port 8000) + frontend (port 3000), Fargate SPOT
 - **Cloudflare Tunnel**: sidecar container exposes the frontend
-- **EFS**: mounted at `/chroma` inside the backend container for Chroma persistence (access point UID 1000)
+- **EFS**: access point rooted at `/chroma` (UID 1000), mounted at `/data` inside the backend container; Chroma persists to `/data/chromadb` (`PERSIST_DIRECTORY`)
 - **RDS MySQL 8.4**: isolated subnet, credentials in Secrets Manager
 - **GitHub OIDC**: `IamStack` provisions the OIDC provider for CI/CD assume-role
 
@@ -92,9 +92,25 @@ Both services share a single `.env` at repo root for local Docker Compose. Key v
 
 In production, secrets are injected from AWS SSM Parameter Store into ECS task definitions.
 
+Copy `.env.example` to `.env` and fill in real values for local development.
+
+## Common Commands
+
+Backend (`src/backend/`, Poetry):
+- `poetry run pytest` — integration tests (needs real API keys and the `<MYSQL_DATABASE>_test` DB; see the `verify` skill)
+- `poetry run ruff check .` / `poetry run ruff format --check .` — lint / format check
+
+Frontend (`src/frontend/`, npm):
+- `npm run lint` — ESLint
+- `npm run format:check` — Prettier
+- No `typecheck` or `test` script exists (no jest/vitest/playwright).
+
+CI (GitHub Actions): PRs to `main` run `backend.yml` (Ruff + pytest with a MySQL service) and `frontend.yml` (ESLint + Prettier), path-filtered to `src/backend/**` / `src/frontend/**`. All deploy workflows are manual (`workflow_dispatch`).
+
 ## Claude Code Skills
 
 Project-specific skills in `.claude/skills/` (auto-invoked by description match):
-- `run` — bring up the local stack correctly and check real readiness signals (no `/health` endpoint exists).
+- `run` — bring up the local stack correctly and check real readiness signals via the `/api/system/*` endpoints (`health`, `db-test`, `chroma-test`).
 - `verify` — golden-path E2E check (upload → ingest → chat → SSE → persisted rows), including the retry/hallucination edge case.
 - `cdk-deploy` — diff-before-deploy discipline and stack-order/destroy safety for `cdk/`.
+- `ci-check` — run the same lint/format/test checks as CI locally before pushing or opening a PR.
