@@ -6,40 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RAG-based internal knowledge search platform. Users upload documents → embeddings stored in Chroma → SSE-streamed Q&A via a Self-RAG (LangGraph) pipeline. Stack: Next.js 16 frontend, FastAPI backend, MySQL 8.4, Chroma vector DB, deployed on AWS ECS Fargate via CDK.
 
-## Development Commands
+Use the `run` and `verify` Skills for local startup and end-to-end verification.
 
-### Local Development (Docker Compose)
-```bash
-docker compose up --build    # Start all services (frontend :3000, backend :8000, MySQL :3306)
-```
+This project uses a single AWS account and region. There is no dev/prod split.
 
-### Frontend (`src/frontend/`)
-```bash
-npm run dev           # Dev server
-npm run build         # Production build
-npm run lint          # ESLint
-npm run format:check  # Prettier check
-```
-
-### Backend (`src/backend/`)
-```bash
-poetry install                              # Install dependencies
-poetry run uvicorn main:app --reload        # Dev server
-poetry run pytest                           # All tests
-poetry run pytest tests/test_chats.py      # Single test file
-poetry run ruff check .                     # Lint
-poetry run ruff format --check .            # Format check
-```
-
-### CDK (`cdk/`)
-```bash
-npm run build         # Compile TypeScript
-npm run test          # Run CDK tests
-npm run diff:dev      # Preview infra changes (dev)
-npm run deploy:dev    # Deploy infra (dev)
-npm run diff:prod     # Preview infra changes (prod)
-npm run deploy:prod   # Deploy infra (prod)
-```
+See `cdk/README.md` for CDK architecture and `.claude/skills/cdk-deploy/` for deployment safety rules.
 
 ## Architecture
 
@@ -80,6 +51,8 @@ grade_answer_node       → evaluate: "useful" | "useless" | "hallucination"
 
 Key files: `workflows.py` (StateGraph), `nodes.py` (node implementations), `chains.py` (LLM chains), `prompts.py` (Japanese prompts).
 
+See `src/backend/services/rag/CLAUDE.md` for the state-accumulation contract (retry history is appended, not overwritten — nodes must index `[-1]`/`[0]` correctly) and other non-obvious details of this pipeline.
+
 ### Frontend Structure (`src/frontend/`)
 
 - `app/` — Next.js App Router pages and API routes
@@ -94,14 +67,16 @@ Key files: `workflows.py` (StateGraph), `nodes.py` (node implementations), `chai
 - `api/endpoints/` — `chats.py` (streaming), `documents.py` (ingestion), `deps.py` (DI)
 - `services/rag/` — LangGraph workflow (see above)
 - `core/chroma.py` — document chunking (500 chars / 50 overlap) → OpenAI embeddings → Chroma
+- `tests/` — Pytest integration tests for chat/document APIs
 - `init_db.py` — creates tables: `users`, `docs`, `chat_histories`, `chat_details`
 - `config.py` — Pydantic settings (env vars)
 
 ### AWS Infrastructure (`cdk/`)
 
-Six CDK stacks deployed in order: `VpcStack → EfsStack → RdsStack → S3Stack → EcsStack → IamStack`
+Six CDK stacks in `cdk/lib/`. Dependency-driven order: `VpcStack` first (everything else needs its VPC) → `EfsStack`/`RdsStack`/`S3Stack` (each only depends on the VPC) → `EcsStack` last (depends on all three). `IamStack` has no dependency on any other stack and may deploy at any point in the dependency graph.
 
-- **ECS Fargate**: backend (port 8000) + frontend (port 3000), SPOT instances, ALB
+- **ECS Fargate**: backend (port 8000) + frontend (port 3000), Fargate SPOT
+- **Cloudflare Tunnel**: sidecar container exposes the frontend
 - **EFS**: mounted at `/chroma` inside the backend container for Chroma persistence (access point UID 1000)
 - **RDS MySQL 8.4**: isolated subnet, credentials in Secrets Manager
 - **GitHub OIDC**: `IamStack` provisions the OIDC provider for CI/CD assume-role
@@ -113,6 +88,13 @@ Both services share a single `.env` at repo root for local Docker Compose. Key v
 - `JWT_SECRET` — token signing
 - `MYSQL_*` / `DATABASE_URL` — database connection
 - `FASTAPI_URL` — backend URL used by Next.js Server Actions (default: `http://backend:8000/api`)
-- `PERSIST_DIRECTORY` — Chroma local path (default: `./chroma_db`)
+- `PERSIST_DIRECTORY` — Chroma persistence path (`./chroma_db` locally, EFS-backed in production)
 
 In production, secrets are injected from AWS SSM Parameter Store into ECS task definitions.
+
+## Claude Code Skills
+
+Project-specific skills in `.claude/skills/` (auto-invoked by description match):
+- `run` — bring up the local stack correctly and check real readiness signals (no `/health` endpoint exists).
+- `verify` — golden-path E2E check (upload → ingest → chat → SSE → persisted rows), including the retry/hallucination edge case.
+- `cdk-deploy` — diff-before-deploy discipline and stack-order/destroy safety for `cdk/`.
