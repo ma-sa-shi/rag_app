@@ -2,4 +2,4 @@ services:
   backend:
     volumes:
       # Whole-repo mount for the Dev Container (dev-only; base compose keeps ./src/backend:/app)
-      - .:/workspaces/ai_app:cached
+      - .:/workspaces/ai_app
