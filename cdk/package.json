@@ -6,12 +6,10 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "diff:dev": "cdk diff -c stage=dev --all",
-    "deploy:dev": "cdk deploy -c stage=dev --all",
-    "destroy:dev": "cdk destroy -c stage=dev --all",
-    "diff:prod": "cdk diff -c stage=prod --all",
-    "deploy:prod": "cdk deploy -c stage=prod --all",
-    "destroy:prod": "cdk destroy -c stage=prod --all"
+    "bootstrap": "cdk bootstrap",
+    "diff": "cdk diff --all",
+    "deploy": "cdk deploy --all",
+    "destroy": "cdk destroy --all"
   },
   "devDependencies": {
     "@types/jest": "^30",
