@@ -25,8 +25,10 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
+          cache-dependency-path: cdk/package-lock.json
 
       - name: Install dependencies
+        working-directory: cdk
         run: npm ci
 
       - name: Configure AWS credentials
@@ -36,7 +38,9 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: cdk diff
-        run: npx cdk diff --all || true
+        working-directory: cdk
+        run: npx cdk diff --all
 
       - name: cdk deploy
+        working-directory: cdk
         run: npx cdk deploy --all --require-approval never
