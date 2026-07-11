@@ -27,17 +27,18 @@ Never:
 Run from the repository root:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-The first startup can take several minutes because the backend container installs
-Python dependencies, initializes the database, and then starts Uvicorn.
+Use `-d` (detached) — the foreground form never returns, which blocks any session waiting on the command. Follow progress with `docker compose logs -f backend` if needed.
+
+The first startup can take several minutes because the backend container installs Python dependencies, initializes the database, and then starts Uvicorn.
 
 ---
 
 ## Required environment
 
-Both services share a single repository-root `.env`.
+Both services share a single repository-root `.env`. If it is missing, copy `.env.example` and have the user fill in real values.
 
 Required variables include:
 
@@ -54,8 +55,7 @@ Required variables include:
 - `COHERE_API_KEY`
 - `FASTAPI_URL`
 
-If required values are missing or obviously placeholders, stop and ask the user
-instead of inventing credentials or API keys.
+If required values are missing or obviously placeholders, stop and ask the user instead of inventing credentials or API keys.
 
 ---
 
@@ -95,6 +95,20 @@ Expected:
 {"status":"success",...}
 ```
 
+4. Chroma
+
+```bash
+curl -s http://localhost:8000/api/system/chroma-test
+```
+
+Expected:
+
+```json
+{"status":"success",...}
+```
+
+This confirms the Chroma client initialized, but not that the API keys are valid (see below).
+
 5. Frontend
 
 ```bash
@@ -126,8 +140,7 @@ Uvicorn running
 
 This Skill only verifies that the application starts correctly.
 
-For end-to-end verification (upload → ingest → chat → persistence),
-use the `verify` Skill.
+For end-to-end verification (upload → ingest → chat → persistence), use the `verify` Skill.
 
 ---
 
@@ -135,8 +148,7 @@ use the `verify` Skill.
 
 Protected pages require the httpOnly `session_token` cookie.
 
-Calling FastAPI endpoints directly bypasses the Next.js route handler that
-adds request headers. Use the browser UI when validating user-facing behavior.
+Calling FastAPI endpoints directly bypasses the Next.js route handler that adds request headers. Use the browser UI when validating user-facing behavior.
 
 ---
 
@@ -162,8 +174,7 @@ warn the user that the local MySQL volume will be deleted.
 
 Invalid `OPENAI_API_KEY` or `COHERE_API_KEY` does not prevent startup.
 
-The application only validates those keys during embedding, reranking, or chat
-requests.
+The application only validates those keys during embedding, reranking, or chat requests.
 
 A successful startup is not proof that the API keys are valid.
 

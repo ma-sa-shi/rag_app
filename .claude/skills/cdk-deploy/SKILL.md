@@ -89,7 +89,7 @@ If changes affect `EcsStack` or `EfsStack`:
 - Verify the container still runs as UID 1000.
 - Verify the EFS access point configuration remains compatible.
 - Warn the user if either changes.
-  The EFS access point is pinned to UID 1000 and Chroma stores persistent data under `/chroma`. UID or access point changes can silently break persistence.
+  The EFS access point is pinned to UID 1000 and rooted at `/chroma` on the EFS side; the backend container mounts it at `/data`, and Chroma persists to `/data/chromadb` (`PERSIST_DIRECTORY`). UID, access point, or mount path changes can silently break persistence.
 
 ---
 
@@ -139,6 +139,9 @@ Routine deployments use GitHub Actions.
 - Infrastructure updates use `deploy-infra.yml`.
 - Backend updates use `deploy-backend.yml`.
 - Frontend updates use `deploy-frontend.yml`.
+- `cleanup-ecs.yml` manually scales both ECS services to desired-count 0 (cost-saving stop; the scheduled Auto Scaling still applies).
+
+All deploy workflows are `workflow_dispatch` (manual trigger) only.
 
 Use local `npm run deploy` and `npm run destroy` only for:
 
