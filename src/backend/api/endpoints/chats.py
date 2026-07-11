@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, Header
+from fastapi import APIRouter, HTTPException, status, Depends, Header
 from fastapi.responses import StreamingResponse
 from services.rag.workflows import generate_stream
 from api.endpoints.deps import get_chroma_client, get_chats_logger
@@ -15,7 +15,7 @@ async def chat_stream(
     request: Request,
     payload: ChatRequest,
     x_user_id: int | None = Header(..., alias="X-User-Id"),
-    x_request_id: str | None = Header(..., alias="X-request-Id"),
+    x_request_id: str | None = Header(..., alias="X-Request-Id"),
     chroma=Depends(get_chroma_client),
     logger: Logger = Depends(get_chats_logger),
 ):
@@ -24,11 +24,15 @@ async def chat_stream(
         payload.question[:50],
         extra={"user_id": x_user_id, "request_id": x_request_id},
     )
-    if not x_user_id or x_user_id == "None" or x_request_id == "unknown_request":
+    if not x_user_id or x_request_id == "unknown_request":
         logger.warning(
             "[chat_stream] Blocked invalid request. Question: %s",
             payload.question[:50],
             extra={"user_id": x_user_id, "request_id": x_request_id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid X-User-Id or X-Request-Id header",
         )
 
     try:
