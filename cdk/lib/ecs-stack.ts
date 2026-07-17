@@ -11,6 +11,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as appscaling from 'aws-cdk-lib/aws-applicationautoscaling';
+import { TimeZone } from 'aws-cdk-lib';
 
 interface EcsStackProps extends cdk.StackProps {
   vpc: ec2.IVpc;
@@ -324,9 +325,17 @@ export class EcsStack extends cdk.Stack {
 
     nextjsService.node.addDependency(fastapiService);
 
-    // 00:00(UTC)起動, 10:00(UTC)停止
-    const startSchedule = appscaling.Schedule.cron({ hour: '0', minute: '0' });
-    const stopSchedule = appscaling.Schedule.cron({ hour: '10', minute: '0' });
+    // 09:00(JTC)起動, 19:00(JTC)停止
+    const startSchedule = appscaling.Schedule.cron({
+      hour: '9',
+      minute: '0',
+      weekDay: 'MON-FRI',
+    });
+    const stopSchedule = appscaling.Schedule.cron({
+      hour: '19',
+      minute: '0',
+      weekDay: 'MON-FRI',
+    });
 
     const fastapiScaling = fastapiService.autoScaleTaskCount({
       minCapacity: 0,
@@ -336,11 +345,13 @@ export class EcsStack extends cdk.Stack {
       schedule: startSchedule,
       minCapacity: 1,
       maxCapacity: 1,
+      timeZone: TimeZone.ASIA_TOKYO,
     });
     fastapiScaling.scaleOnSchedule('FastapiScaleDown', {
       schedule: stopSchedule,
       minCapacity: 0,
       maxCapacity: 0,
+      timeZone: TimeZone.ASIA_TOKYO,
     });
 
     const nextjsScaling = nextjsService.autoScaleTaskCount({
@@ -351,11 +362,13 @@ export class EcsStack extends cdk.Stack {
       schedule: startSchedule,
       minCapacity: 1,
       maxCapacity: 1,
+      timeZone: TimeZone.ASIA_TOKYO,
     });
     nextjsScaling.scaleOnSchedule('NextjsScaleDown', {
       schedule: stopSchedule,
       minCapacity: 0,
       maxCapacity: 0,
+      timeZone: TimeZone.ASIA_TOKYO,
     });
   }
 }
